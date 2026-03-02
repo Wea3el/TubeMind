@@ -1,0 +1,1699 @@
+{
+  "Calypso<SEP>Ogygia": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428717,
+    "update_time": 1772428717,
+    "_id": "Calypso<SEP>Ogygia"
+  },
+  "Odysseus<SEP>Odyssey": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428717,
+    "update_time": 1772428717,
+    "_id": "Odysseus<SEP>Odyssey"
+  },
+  "Calypso<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269",
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 2,
+    "create_time": 1772428718,
+    "update_time": 1772428718,
+    "_id": "Calypso<SEP>Odysseus"
+  },
+  "Calypso<SEP>Homer": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428718,
+    "update_time": 1772428718,
+    "_id": "Calypso<SEP>Homer"
+  },
+  "Calypso<SEP>Odyssey": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428718,
+    "update_time": 1772428718,
+    "_id": "Calypso<SEP>Odyssey"
+  },
+  "Calypso<SEP>Immortality": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428719,
+    "update_time": 1772428719,
+    "_id": "Calypso<SEP>Immortality"
+  },
+  "Calypso<SEP>Greek Mythology": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428719,
+    "update_time": 1772428719,
+    "_id": "Calypso<SEP>Greek Mythology"
+  },
+  "Pleiades<SEP>Pleione": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428719,
+    "update_time": 1772428719,
+    "_id": "Pleiades<SEP>Pleione"
+  },
+  "Calypso<SEP>She Who Conceals": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428719,
+    "update_time": 1772428719,
+    "_id": "Calypso<SEP>She Who Conceals"
+  },
+  "Calypso<SEP>Concealing the Knowledge": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428720,
+    "update_time": 1772428720,
+    "_id": "Calypso<SEP>Concealing the Knowledge"
+  },
+  "Calypso<SEP>Etymologicum Magnum": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428720,
+    "update_time": 1772428720,
+    "_id": "Calypso<SEP>Etymologicum Magnum"
+  },
+  "Oceanus<SEP>Tethys": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428720,
+    "update_time": 1772428720,
+    "_id": "Oceanus<SEP>Tethys"
+  },
+  "Oceanid Nymphs<SEP>Tethys": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428720,
+    "update_time": 1772428720,
+    "_id": "Oceanid Nymphs<SEP>Tethys"
+  },
+  "Calypso<SEP>Dolóessa": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428721,
+    "update_time": 1772428721,
+    "_id": "Calypso<SEP>Dolóessa"
+  },
+  "Oceanid Nymphs<SEP>Oceanus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428721,
+    "update_time": 1772428721,
+    "_id": "Oceanid Nymphs<SEP>Oceanus"
+  },
+  "Atlas<SEP>Calypso": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428721,
+    "update_time": 1772428721,
+    "_id": "Atlas<SEP>Calypso"
+  },
+  "Doris<SEP>Nereus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428721,
+    "update_time": 1772428721,
+    "_id": "Doris<SEP>Nereus"
+  },
+  "Calypso<SEP>Pleione": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428721,
+    "update_time": 1772428721,
+    "_id": "Calypso<SEP>Pleione"
+  },
+  "Nereids<SEP>Nereus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428722,
+    "update_time": 1772428722,
+    "_id": "Nereids<SEP>Nereus"
+  },
+  "Calypso<SEP>Hesiod": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428722,
+    "update_time": 1772428722,
+    "_id": "Calypso<SEP>Hesiod"
+  },
+  "Doris<SEP>Nereids": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428722,
+    "update_time": 1772428722,
+    "_id": "Doris<SEP>Nereids"
+  },
+  "Helios<SEP>Perse": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428722,
+    "update_time": 1772428722,
+    "_id": "Helios<SEP>Perse"
+  },
+  "Calypso<SEP>Homeric Hymn to Demeter": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428722,
+    "update_time": 1772428722,
+    "_id": "Calypso<SEP>Homeric Hymn to Demeter"
+  },
+  "Circe<SEP>Helios": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428722,
+    "update_time": 1772428722,
+    "_id": "Circe<SEP>Helios"
+  },
+  "Calypso<SEP>Oceanid Nymphs": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428722,
+    "update_time": 1772428722,
+    "_id": "Calypso<SEP>Oceanid Nymphs"
+  },
+  "Circe<SEP>Perse": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428723,
+    "update_time": 1772428723,
+    "_id": "Circe<SEP>Perse"
+  },
+  "Apollodorus<SEP>Calypso": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428723,
+    "update_time": 1772428723,
+    "_id": "Apollodorus<SEP>Calypso"
+  },
+  "Calypso<SEP>Nereids": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428723,
+    "update_time": 1772428723,
+    "_id": "Calypso<SEP>Nereids"
+  },
+  "Cephalonians<SEP>Hermes": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428723,
+    "update_time": 1772428723,
+    "_id": "Cephalonians<SEP>Hermes"
+  },
+  "Calypso<SEP>John Tzetzes": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428723,
+    "update_time": 1772428723,
+    "_id": "Calypso<SEP>John Tzetzes"
+  },
+  "Odysseus<SEP>Penelope": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428723,
+    "update_time": 1772428723,
+    "_id": "Odysseus<SEP>Penelope"
+  },
+  "Calypso<SEP>Helios": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428724,
+    "update_time": 1772428724,
+    "_id": "Calypso<SEP>Helios"
+  },
+  "Athena<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428724,
+    "update_time": 1772428724,
+    "_id": "Athena<SEP>Odysseus"
+  },
+  "Calypso<SEP>Perse": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428724,
+    "update_time": 1772428724,
+    "_id": "Calypso<SEP>Perse"
+  },
+  "Hermes<SEP>Zeus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428724,
+    "update_time": 1772428724,
+    "_id": "Hermes<SEP>Zeus"
+  },
+  "Athena<SEP>Zeus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428724,
+    "update_time": 1772428724,
+    "_id": "Athena<SEP>Zeus"
+  },
+  "Calypso<SEP>Circe": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428724,
+    "update_time": 1772428724,
+    "_id": "Calypso<SEP>Circe"
+  },
+  "Odysseus<SEP>Zeus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428725,
+    "update_time": 1772428725,
+    "_id": "Odysseus<SEP>Zeus"
+  },
+  "Calypso<SEP>Catalogue of Women": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428725,
+    "update_time": 1772428725,
+    "_id": "Calypso<SEP>Catalogue of Women"
+  },
+  "Latinus<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428725,
+    "update_time": 1772428725,
+    "_id": "Latinus<SEP>Odysseus"
+  },
+  "Calypso<SEP>Cephalonians": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428725,
+    "update_time": 1772428725,
+    "_id": "Calypso<SEP>Cephalonians"
+  },
+  "Nausithous<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428725,
+    "update_time": 1772428725,
+    "_id": "Nausithous<SEP>Odysseus"
+  },
+  "Circe<SEP>Latinus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428725,
+    "update_time": 1772428725,
+    "_id": "Circe<SEP>Latinus"
+  },
+  "Calypso<SEP>Hermes": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428726,
+    "update_time": 1772428726,
+    "_id": "Calypso<SEP>Hermes"
+  },
+  "Nausinous<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428726,
+    "update_time": 1772428726,
+    "_id": "Nausinous<SEP>Odysseus"
+  },
+  "Gilgamesh<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428726,
+    "update_time": 1772428726,
+    "_id": "Gilgamesh<SEP>Odysseus"
+  },
+  "Calypso<SEP>Latinus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428726,
+    "update_time": 1772428726,
+    "_id": "Calypso<SEP>Latinus"
+  },
+  "Calypso<SEP>Nausithous": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428726,
+    "update_time": 1772428726,
+    "_id": "Calypso<SEP>Nausithous"
+  },
+  "Polyphemus<SEP>Poseidon": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428726,
+    "update_time": 1772428726,
+    "_id": "Polyphemus<SEP>Poseidon"
+  },
+  "Epic of Gilgamesh<SEP>Gilgamesh": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428726,
+    "update_time": 1772428726,
+    "_id": "Epic of Gilgamesh<SEP>Gilgamesh"
+  },
+  "Odysseus<SEP>Poseidon": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428727,
+    "update_time": 1772428727,
+    "_id": "Odysseus<SEP>Poseidon"
+  },
+  "Cyclops<SEP>Polyphemus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428727,
+    "update_time": 1772428727,
+    "_id": "Cyclops<SEP>Polyphemus"
+  },
+  "Epic of Gilgamesh<SEP>Siduri": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428727,
+    "update_time": 1772428727,
+    "_id": "Epic of Gilgamesh<SEP>Siduri"
+  },
+  "Calypso<SEP>Nausinous": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428727,
+    "update_time": 1772428727,
+    "_id": "Calypso<SEP>Nausinous"
+  },
+  "Calypso Watching the Ocean<SEP>Letitia Landon": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428727,
+    "update_time": 1772428727,
+    "_id": "Calypso Watching the Ocean<SEP>Letitia Landon"
+  },
+  "Calypso<SEP>Siduri": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428727,
+    "update_time": 1772428727,
+    "_id": "Calypso<SEP>Siduri"
+  },
+  "Les Aventures de Télé<SEP>Ryan Patrick Hanley": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428727,
+    "update_time": 1772428727,
+    "_id": "Les Aventures de Télé<SEP>Ryan Patrick Hanley"
+  },
+  "Calypso Watching the Ocean<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428728,
+    "update_time": 1772428728,
+    "_id": "Calypso Watching the Ocean<SEP>Odysseus"
+  },
+  "Calypso<SEP>Poseidon": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428728,
+    "update_time": 1772428728,
+    "_id": "Calypso<SEP>Poseidon"
+  },
+  "Ogygia<SEP>The Odyssey (Calypso Episode)": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428728,
+    "update_time": 1772428728,
+    "_id": "Ogygia<SEP>The Odyssey (Calypso Episode)"
+  },
+  "Calypso<SEP>Hyginus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269",
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 2,
+    "create_time": 1772428728,
+    "update_time": 1772428728,
+    "_id": "Calypso<SEP>Hyginus"
+  },
+  "Hermes<SEP>The Odyssey (Calypso Episode)": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428728,
+    "update_time": 1772428728,
+    "_id": "Hermes<SEP>The Odyssey (Calypso Episode)"
+  },
+  "Athena<SEP>The Odyssey (Calypso Episode)": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428728,
+    "update_time": 1772428728,
+    "_id": "Athena<SEP>The Odyssey (Calypso Episode)"
+  },
+  "Calypso<SEP>Calypso Watching the Ocean": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428728,
+    "update_time": 1772428728,
+    "_id": "Calypso<SEP>Calypso Watching the Ocean"
+  },
+  "The Odyssey (Calypso Episode)<SEP>Zeus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428729,
+    "update_time": 1772428729,
+    "_id": "The Odyssey (Calypso Episode)<SEP>Zeus"
+  },
+  "Calypso<SEP>Ryan Patrick Hanley": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269",
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 2,
+    "create_time": 1772428729,
+    "update_time": 1772428729,
+    "_id": "Calypso<SEP>Ryan Patrick Hanley"
+  },
+  "Dolóessa<SEP>Dolóessa (Epithet)": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428729,
+    "update_time": 1772428729,
+    "_id": "Dolóessa<SEP>Dolóessa (Epithet)"
+  },
+  "Calypso<SEP>The Odyssey (Calypso Episode)": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428729,
+    "update_time": 1772428729,
+    "_id": "Calypso<SEP>The Odyssey (Calypso Episode)"
+  },
+  "Calypso<SEP>Odysseus's Boat": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428729,
+    "update_time": 1772428729,
+    "_id": "Calypso<SEP>Odysseus's Boat"
+  },
+  "Calypso<SEP>Odysseus's Departure": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428730,
+    "update_time": 1772428730,
+    "_id": "Calypso<SEP>Odysseus's Departure"
+  },
+  "Calypso<SEP>Calypso (Mythology)": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428731,
+    "update_time": 1772428731,
+    "_id": "Calypso<SEP>Calypso (Mythology)"
+  },
+  "Calypso<SEP>Kalyptō": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428731,
+    "update_time": 1772428731,
+    "_id": "Calypso<SEP>Kalyptō"
+  },
+  "Honoured People<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428731,
+    "update_time": 1772428731,
+    "_id": "Honoured People<SEP>Odysseus"
+  },
+  "Hyginus<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428731,
+    "update_time": 1772428731,
+    "_id": "Hyginus<SEP>Odysseus"
+  },
+  "Calypso<SEP>Dolóessa (Epithet)": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428732,
+    "update_time": 1772428732,
+    "_id": "Calypso<SEP>Dolóessa (Epithet)"
+  },
+  "Odysseus<SEP>Poem \"Calypso Watching The Ocean\"": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428732,
+    "update_time": 1772428732,
+    "_id": "Odysseus<SEP>Poem \"Calypso Watching The Ocean\""
+  },
+  "Calypso<SEP>Tools For Boatbuilding": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428732,
+    "update_time": 1772428732,
+    "_id": "Calypso<SEP>Tools For Boatbuilding"
+  },
+  "Letitia Landon<SEP>Poem \"Calypso Watching The Ocean\"": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428732,
+    "update_time": 1772428732,
+    "_id": "Letitia Landon<SEP>Poem \"Calypso Watching The Ocean\""
+  },
+  "Calypso<SEP>Wine": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428732,
+    "update_time": 1772428732,
+    "_id": "Calypso<SEP>Wine"
+  },
+  "Ancient Greece<SEP>Philosophers": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428732,
+    "update_time": 1772428732,
+    "_id": "Ancient Greece<SEP>Philosophers"
+  },
+  "Les Aventures De Télémaque<SEP>Ryan Patrick Hanley": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428733,
+    "update_time": 1772428733,
+    "_id": "Les Aventures De Télémaque<SEP>Ryan Patrick Hanley"
+  },
+  "Bread<SEP>Calypso": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428733,
+    "update_time": 1772428733,
+    "_id": "Bread<SEP>Calypso"
+  },
+  "Eros<SEP>Ryan Patrick Hanley": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428733,
+    "update_time": 1772428733,
+    "_id": "Eros<SEP>Ryan Patrick Hanley"
+  },
+  "Fénelon<SEP>Les Aventures De Télémaque": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428733,
+    "update_time": 1772428733,
+    "_id": "Fénelon<SEP>Les Aventures De Télémaque"
+  },
+  "Calypso<SEP>Clothing": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428733,
+    "update_time": 1772428733,
+    "_id": "Calypso<SEP>Clothing"
+  },
+  "Pride<SEP>Ryan Patrick Hanley": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428733,
+    "update_time": 1772428733,
+    "_id": "Pride<SEP>Ryan Patrick Hanley"
+  },
+  "Calypso<SEP>Other Materials For Boat": {
+    "chunk_ids": [
+      "chunk-4a9428bfe0806b900c71bbcf810ed269"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Calypso<SEP>Other Materials For Boat"
+  },
+  "Max Horkheimer<SEP>Theodor Adorno": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Max Horkheimer<SEP>Theodor Adorno"
+  },
+  "Eros<SEP>Pride": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Eros<SEP>Pride"
+  },
+  "Calypso<SEP>Poem \"Calypso Watching The Ocean\"": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Calypso<SEP>Poem \"Calypso Watching The Ocean\""
+  },
+  "Apollodorus<SEP>The Library": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Apollodorus<SEP>The Library"
+  },
+  "Calypso<SEP>Philosophers": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Calypso<SEP>Philosophers"
+  },
+  "James George Frazer<SEP>The Library": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "James George Frazer<SEP>The Library"
+  },
+  "Intimate Lives Of The Ancient Greeks<SEP>Stephanie L. Budin": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Intimate Lives Of The Ancient Greeks<SEP>Stephanie L. Budin"
+  },
+  "Calypso<SEP>Theodor Adorno": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "Calypso<SEP>Theodor Adorno"
+  },
+  "The Age Of Fable: Stories Of Gods And Heroes<SEP>Thomas Bulfinch": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428734,
+    "update_time": 1772428734,
+    "_id": "The Age Of Fable: Stories Of Gods And Heroes<SEP>Thomas Bulfinch"
+  },
+  "Perseus Digital Library<SEP>The Library": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Perseus Digital Library<SEP>The Library"
+  },
+  "Hesiod's Theogony (Caldwell Edition)<SEP>Richard Caldwell": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Hesiod's Theogony (Caldwell Edition)<SEP>Richard Caldwell"
+  },
+  "Calypso<SEP>Max Horkheimer": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Calypso<SEP>Max Horkheimer"
+  },
+  "Floating Press<SEP>The Age Of Fable: Stories Of Gods And Heroes": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Floating Press<SEP>The Age Of Fable: Stories Of Gods And Heroes"
+  },
+  "\"Calypso\" (Brill's New Pauly Article)<SEP>Paul Dräger": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "\"Calypso\" (Brill's New Pauly Article)<SEP>Paul Dräger"
+  },
+  "Focus Publishing/R. Pullins Company<SEP>Hesiod's Theogony (Caldwell Edition)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Focus Publishing/R. Pullins Company<SEP>Hesiod's Theogony (Caldwell Edition)"
+  },
+  "Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas<SEP>Hubert Cancik": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas<SEP>Hubert Cancik"
+  },
+  "Calypso<SEP>Power Over Fate": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Calypso<SEP>Power Over Fate"
+  },
+  "Cosmography And The Idea Of Hyperborea In Ancient Greece: A Philology Of Worlds<SEP>Renaud Gagné": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Cosmography And The Idea Of Hyperborea In Ancient Greece: A Philology Of Worlds<SEP>Renaud Gagné"
+  },
+  "Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas<SEP>Helmuth Schneider": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas<SEP>Helmuth Schneider"
+  },
+  "Pierre Grimal<SEP>The Dictionary Of Classical Mythology": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Pierre Grimal<SEP>The Dictionary Of Classical Mythology"
+  },
+  "\"Bourgeois Housewives\" Sensibility<SEP>Calypso": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "\"Bourgeois Housewives\" Sensibility<SEP>Calypso"
+  },
+  "Cambridge University Press<SEP>Cosmography And The Idea Of Hyperborea In Ancient Greece: A Philology Of Worlds": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428735,
+    "update_time": 1772428735,
+    "_id": "Cambridge University Press<SEP>Cosmography And The Idea Of Hyperborea In Ancient Greece: A Philology Of Worlds"
+  },
+  "Brill<SEP>Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "Brill<SEP>Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas"
+  },
+  "Carol Dougherty<SEP>The Raft Of Odysseus: The Ethnographic Imagination Of Homer's Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "Carol Dougherty<SEP>The Raft Of Odysseus: The Ethnographic Imagination Of Homer's Odyssey"
+  },
+  "Oxford University Press<SEP>The Raft Of Odysseus: The Ethnographic Imagination Of Homer's Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "Oxford University Press<SEP>The Raft Of Odysseus: The Ethnographic Imagination Of Homer's Odyssey"
+  },
+  "Edith Hall<SEP>The Return Of Ulysses: A Cultural History Of Homer's Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "Edith Hall<SEP>The Return Of Ulysses: A Cultural History Of Homer's Odyssey"
+  },
+  "\"Calypso\" (Brill's New Pauly Article)<SEP>Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "\"Calypso\" (Brill's New Pauly Article)<SEP>Brill's New Pauly: Encyclopaedia Of The Ancient World. Antiquity, Volume 2, Ark – Cas"
+  },
+  "I.B. Tauris<SEP>The Return Of Ulysses: A Cultural History Of Homer's Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "I.B. Tauris<SEP>The Return Of Ulysses: A Cultural History Of Homer's Odyssey"
+  },
+  "Robin Hard<SEP>The Routledge Handbook Of Greek Mythology": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "Robin Hard<SEP>The Routledge Handbook Of Greek Mythology"
+  },
+  "Hesiod<SEP>Theogony (Hesiod)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428736,
+    "update_time": 1772428736,
+    "_id": "Hesiod<SEP>Theogony (Hesiod)"
+  },
+  "Hugh G. Evelyn-White<SEP>Theogony (Hesiod)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Hugh G. Evelyn-White<SEP>Theogony (Hesiod)"
+  },
+  "Hesiod<SEP>The Shield. Catalogue Of Women. Other Fragments (Hesiod)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Hesiod<SEP>The Shield. Catalogue Of Women. Other Fragments (Hesiod)"
+  },
+  "Psychology Press<SEP>The Routledge Handbook Of Greek Mythology": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Psychology Press<SEP>The Routledge Handbook Of Greek Mythology"
+  },
+  "The Dictionary Of Classical Mythology<SEP>Wiley-Blackwell": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "The Dictionary Of Classical Mythology<SEP>Wiley-Blackwell"
+  },
+  "Calypso<SEP>The Dictionary Of Classical Mythology": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Calypso<SEP>The Dictionary Of Classical Mythology"
+  },
+  "Homer<SEP>The Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Homer<SEP>The Odyssey"
+  },
+  "Hugh G. Evelyn-White<SEP>The Homeric Hymns And Homerica (Hesiod Edition)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Hugh G. Evelyn-White<SEP>The Homeric Hymns And Homerica (Hesiod Edition)"
+  },
+  "Glenn W. Most<SEP>The Shield. Catalogue Of Women. Other Fragments (Hesiod)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Glenn W. Most<SEP>The Shield. Catalogue Of Women. Other Fragments (Hesiod)"
+  },
+  "Hyginus<SEP>Hyginus' Fabulae": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428737,
+    "update_time": 1772428737,
+    "_id": "Hyginus<SEP>Hyginus' Fabulae"
+  },
+  "Loeb Classical Library<SEP>The Shield. Catalogue Of Women. Other Fragments (Hesiod)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Loeb Classical Library<SEP>The Shield. Catalogue Of Women. Other Fragments (Hesiod)"
+  },
+  "Hyginus' Fabulae<SEP>R. Scott Smith": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Hyginus' Fabulae<SEP>R. Scott Smith"
+  },
+  "Homeric Hymn To Demeter (2)<SEP>The Homeric Hymns And Homerica (Hesiod Edition)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Homeric Hymn To Demeter (2)<SEP>The Homeric Hymns And Homerica (Hesiod Edition)"
+  },
+  "Fragmenta Hesiodea<SEP>Merkelbach": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Fragmenta Hesiodea<SEP>Merkelbach"
+  },
+  "A.T. Murray<SEP>The Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "A.T. Murray<SEP>The Odyssey"
+  },
+  "Hyginus' Fabulae<SEP>Stephen M. Trzaskoma": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Hyginus' Fabulae<SEP>Stephen M. Trzaskoma"
+  },
+  "Hesiod: Theogony (West 1966)<SEP>M. L. West": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Hesiod: Theogony (West 1966)<SEP>M. L. West"
+  },
+  "Isaak Tzetzes<SEP>Scholia To Lycophron's Alexandra": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Isaak Tzetzes<SEP>Scholia To Lycophron's Alexandra"
+  },
+  "Fragmenta Hesiodea<SEP>M. L. West": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Fragmenta Hesiodea<SEP>M. L. West"
+  },
+  "Hesiod: Theogony (West 1966)<SEP>Oxford University Press": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Hesiod: Theogony (West 1966)<SEP>Oxford University Press"
+  },
+  "Ioannis Tzetzes<SEP>Scholia To Lycophron's Alexandra": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Ioannis Tzetzes<SEP>Scholia To Lycophron's Alexandra"
+  },
+  "Hackett Publishing Company<SEP>Hyginus' Fabulae": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428738,
+    "update_time": 1772428738,
+    "_id": "Hackett Publishing Company<SEP>Hyginus' Fabulae"
+  },
+  "Dictionary Of Greek And Roman Biography And Mythology<SEP>William Smith": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428739,
+    "update_time": 1772428739,
+    "_id": "Dictionary Of Greek And Roman Biography And Mythology<SEP>William Smith"
+  },
+  "Clarendon Press Oxford<SEP>Fragmenta Hesiodea": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428739,
+    "update_time": 1772428739,
+    "_id": "Clarendon Press Oxford<SEP>Fragmenta Hesiodea"
+  },
+  "Calypso<SEP>Dictionary Of Greek And Roman Biography And Mythology": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428739,
+    "update_time": 1772428739,
+    "_id": "Calypso<SEP>Dictionary Of Greek And Roman Biography And Mythology"
+  },
+  "The Unknown Odysseus: Alternate Worlds In Homers Odyssey<SEP>Thomas Van Nortwick": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428739,
+    "update_time": 1772428739,
+    "_id": "The Unknown Odysseus: Alternate Worlds In Homers Odyssey<SEP>Thomas Van Nortwick"
+  },
+  "Eduard Scheer<SEP>Scholia To Lycophron's Alexandra": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428739,
+    "update_time": 1772428739,
+    "_id": "Eduard Scheer<SEP>Scholia To Lycophron's Alexandra"
+  },
+  "Encyclopædia Britannica (11th Edition)<SEP>Hugh Chisholm": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428739,
+    "update_time": 1772428739,
+    "_id": "Encyclopædia Britannica (11th Edition)<SEP>Hugh Chisholm"
+  },
+  "The Unknown Odysseus: Alternate Worlds In Homers Odyssey<SEP>University Of Michigan Press": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "The Unknown Odysseus: Alternate Worlds In Homers Odyssey<SEP>University Of Michigan Press"
+  },
+  "Scholia To Lycophron's Alexandra<SEP>Weidmann": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Scholia To Lycophron's Alexandra<SEP>Weidmann"
+  },
+  "Calypso<SEP>Encyclopædia Britannica (11th Edition)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e",
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 2,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Calypso<SEP>Encyclopædia Britannica (11th Edition)"
+  },
+  "Love For Odysseus<SEP>Odysseus": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Love For Odysseus<SEP>Odysseus"
+  },
+  "Folly Of Obsession<SEP>Poem \"Calypso Watching The Ocean\"": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Folly Of Obsession<SEP>Poem \"Calypso Watching The Ocean\""
+  },
+  "Scholia To Lycophron's Alexandra<SEP>Topos Text Project": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Scholia To Lycophron's Alexandra<SEP>Topos Text Project"
+  },
+  "Cambridge University Press (Encyclopædia Britannica Publisher)<SEP>Encyclopædia Britannica (11th Edition)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Cambridge University Press (Encyclopædia Britannica Publisher)<SEP>Encyclopædia Britannica (11th Edition)"
+  },
+  "Meaning Of Calypso<SEP>Philosophers": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Meaning Of Calypso<SEP>Philosophers"
+  },
+  "Calypso<SEP>Love For Odysseus": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Calypso<SEP>Love For Odysseus"
+  },
+  "Archive.org<SEP>Scholia To Lycophron's Alexandra": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Archive.org<SEP>Scholia To Lycophron's Alexandra"
+  },
+  "Power Over Fate And Bourgeois Housewives Sensibility<SEP>Theodor Adorno": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428740,
+    "update_time": 1772428740,
+    "_id": "Power Over Fate And Bourgeois Housewives Sensibility<SEP>Theodor Adorno"
+  },
+  "Calypso<SEP>Folly Of Obsession": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "Calypso<SEP>Folly Of Obsession"
+  },
+  "Ancient Greece<SEP>Meaning Of Calypso": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "Ancient Greece<SEP>Meaning Of Calypso"
+  },
+  "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>Hyginus' Fabulae": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>Hyginus' Fabulae"
+  },
+  "Max Horkheimer<SEP>Power Over Fate And Bourgeois Housewives Sensibility": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "Max Horkheimer<SEP>Power Over Fate And Bourgeois Housewives Sensibility"
+  },
+  "Harvard University Press<SEP>The Library": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "Harvard University Press<SEP>The Library"
+  },
+  "Calypso<SEP>Power Over Fate And Bourgeois Housewives Sensibility": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "Calypso<SEP>Power Over Fate And Bourgeois Housewives Sensibility"
+  },
+  "The Library<SEP>William Heinemann Ltd.": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "The Library<SEP>William Heinemann Ltd."
+  },
+  "Harvard University Press<SEP>Theogony (Hesiod)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428741,
+    "update_time": 1772428741,
+    "_id": "Harvard University Press<SEP>Theogony (Hesiod)"
+  },
+  "The Homeric Hymns And Homerica (Hesiod Edition)<SEP>William Heinemann Ltd.": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "The Homeric Hymns And Homerica (Hesiod Edition)<SEP>William Heinemann Ltd."
+  },
+  "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>The Library": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>The Library"
+  },
+  "The Odyssey<SEP>William Heinemann Ltd.": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "The Odyssey<SEP>William Heinemann Ltd."
+  },
+  "Harvard University Press<SEP>The Homeric Hymns And Homerica (Hesiod Edition)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Harvard University Press<SEP>The Homeric Hymns And Homerica (Hesiod Edition)"
+  },
+  "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>R. Scott Smith": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>R. Scott Smith"
+  },
+  "Intimate Lives Of The Ancient Greeks<SEP>Praeger Publications": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Intimate Lives Of The Ancient Greeks<SEP>Praeger Publications"
+  },
+  "Oxford University Press<SEP>Oxford [England]": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Oxford University Press<SEP>Oxford [England]"
+  },
+  "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>Stephen M. Trzaskoma": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Apollodorus' Library And Hyginus' Fabulae: Two Handbooks Of Greek Mythology<SEP>Stephen M. Trzaskoma"
+  },
+  "Oxford University Press, Incorporated<SEP>The Raft Of Odysseus: The Ethnographic Imagination Of Homer's Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Oxford University Press, Incorporated<SEP>The Raft Of Odysseus: The Ethnographic Imagination Of Homer's Odyssey"
+  },
+  "London<SEP>William Heinemann Ltd.": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "London<SEP>William Heinemann Ltd."
+  },
+  "Harvard University Press<SEP>The Odyssey": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Harvard University Press<SEP>The Odyssey"
+  },
+  "Ann Arbor<SEP>University Of Michigan Press": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Ann Arbor<SEP>University Of Michigan Press"
+  },
+  "Cambridge University Press<SEP>Encyclopædia Britannica (11th Edition)": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e",
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 2,
+    "create_time": 1772428742,
+    "update_time": 1772428742,
+    "_id": "Cambridge University Press<SEP>Encyclopædia Britannica (11th Edition)"
+  },
+  "Homers Odyssey<SEP>University of Michigan Press": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "Homers Odyssey<SEP>University of Michigan Press"
+  },
+  "Cambridge, Massachusetts<SEP>Harvard University Press": {
+    "chunk_ids": [
+      "chunk-67499e7b6b869922afb829c43d6b368e"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "Cambridge, Massachusetts<SEP>Harvard University Press"
+  },
+  "Hesiod: Theogony<SEP>West, M. L.": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "Hesiod: Theogony<SEP>West, M. L."
+  },
+  "Calypso<SEP>Chisholm, Hugh": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "Calypso<SEP>Chisholm, Hugh"
+  },
+  "Ann Arbor<SEP>University of Michigan Press": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "Ann Arbor<SEP>University of Michigan Press"
+  },
+  "Homers Odyssey<SEP>Us: Alternate Worlds In Homers Odyssey": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "Homers Odyssey<SEP>Us: Alternate Worlds In Homers Odyssey"
+  },
+  "Hesiod: Theogony<SEP>Oxford University Press": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "Hesiod: Theogony<SEP>Oxford University Press"
+  },
+  "1911<SEP>Calypso": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "1911<SEP>Calypso"
+  },
+  "11th Edition<SEP>Encyclopædia Britannica (11th Edition)": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "11th Edition<SEP>Encyclopædia Britannica (11th Edition)"
+  },
+  "ISBN 978-0-472-02521-3<SEP>University of Michigan Press": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428743,
+    "update_time": 1772428743,
+    "_id": "ISBN 978-0-472-02521-3<SEP>University of Michigan Press"
+  },
+  "Hesiod: Theogony<SEP>ISBN 0-19-814169-6": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428744,
+    "update_time": 1772428744,
+    "_id": "Hesiod: Theogony<SEP>ISBN 0-19-814169-6"
+  },
+  "University of Michigan Press<SEP>Us: Alternate Worlds In Homers Odyssey": {
+    "chunk_ids": [
+      "chunk-33ca7b8a64b97232ad237017f77a125a"
+    ],
+    "count": 1,
+    "create_time": 1772428744,
+    "update_time": 1772428744,
+    "_id": "University of Michigan Press<SEP>Us: Alternate Worlds In Homers Odyssey"
+  }
+}
