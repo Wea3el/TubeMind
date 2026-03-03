@@ -268,5 +268,131 @@
     "create_time": 1772469145,
     "update_time": 1772469145,
     "_id": "mix:query:93c56c8bb2e2696afda5600872823c5f"
+  },
+  "mix:keywords:5e5d611c870fde8e36acae9011934ec1": {
+    "return": "{\"high_level_keywords\": [\"Greek mythology\", \"Mythological locations\", \"Nymphs in mythology\"], \"low_level_keywords\": [\"Calypso\", \"Ogygia\", \"Homer\", \"Odyssey\", \"Island home of Calypso\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "original_prompt": "where did calypso live?",
+    "queryparam": {
+      "mode": "mix",
+      "response_type": "Multiple Paragraphs",
+      "top_k": 40,
+      "chunk_top_k": 20,
+      "max_entity_tokens": 6000,
+      "max_relation_tokens": 8000,
+      "max_total_tokens": 30000,
+      "user_prompt": "",
+      "enable_rerank": true
+    },
+    "create_time": 1772510937,
+    "update_time": 1772510937,
+    "_id": "mix:keywords:5e5d611c870fde8e36acae9011934ec1"
+  },
+  "mix:query:40f9b5fdd2429759f9c5f5a536b19e8e": {
+    "return": "Calypso lived on the island of **Ogygia**. In Greek mythology, she is described as a nymph who dwelt there and detained Odysseus on the island for seven years, according to Homer’s *Odyssey*.[1]\n\n### References\n\n- [1] Calypso (mythology)",
+    "cache_type": "query",
+    "chunk_id": null,
+    "original_prompt": "where did calypso live?",
+    "queryparam": {
+      "mode": "mix",
+      "response_type": "Multiple Paragraphs",
+      "top_k": 40,
+      "chunk_top_k": 20,
+      "max_entity_tokens": 6000,
+      "max_relation_tokens": 8000,
+      "max_total_tokens": 30000,
+      "hl_keywords": "Greek mythology, Mythological locations, Nymphs in mythology",
+      "ll_keywords": "Calypso, Ogygia, Homer, Odyssey, Island home of Calypso",
+      "user_prompt": "",
+      "enable_rerank": true
+    },
+    "create_time": 1772510943,
+    "update_time": 1772510943,
+    "_id": "mix:query:40f9b5fdd2429759f9c5f5a536b19e8e"
+  },
+  "mix:keywords:99227286f35396528c2716cb5caf974b": {
+    "return": "{\"high_level_keywords\": [\"Mythological relationships\", \"Characters in The Odyssey\", \"Greek mythology\"], \"low_level_keywords\": [\"Calypso\", \"Odysseus\", \"Calypso's relationship to Odysseus\", \"Homer\", \"The Odyssey\", \"Nymph\", \"Ogygia\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "original_prompt": "What is calypso's relationship to odysseus?",
+    "queryparam": {
+      "mode": "mix",
+      "response_type": "Multiple Paragraphs",
+      "top_k": 40,
+      "chunk_top_k": 20,
+      "max_entity_tokens": 6000,
+      "max_relation_tokens": 8000,
+      "max_total_tokens": 30000,
+      "user_prompt": "",
+      "enable_rerank": true
+    },
+    "create_time": 1772510970,
+    "update_time": 1772510970,
+    "_id": "mix:keywords:99227286f35396528c2716cb5caf974b"
+  },
+  "mix:query:3e0af62bf3397044a671864bb8185f47": {
+    "return": "Calypso’s relationship to Odysseus is defined by her intense love for him and her long, forced detention of him on her island:\n\n- **Captor and lover:** Calypso is a nymph who lives on the island of Ogygia. According to *Homer’s Odyssey*, she **detains Odysseus there for seven years against his will**, trying to keep him as her husband and enchanting him with her singing and sensual pleasures. She promises to make him **immortal if he stays with her**, but he wishes to return home instead.[1]\n\n- **Conflict of desires:** While Calypso loves Odysseus and wants him to remain with her, Odysseus spends his days weeping on the shore, longing for his wife **Penelope** and his home. He is compelled to sleep with Calypso at night but emotionally remains attached to his life in Ithaca.[1]\n\n- **Divine intervention and release:** Odysseus’s patron goddess **Athena** asks **Zeus** to free him; Zeus sends **Hermes** to order Calypso to let Odysseus go, declaring it is not his destiny to stay with her forever. Calypso obeys, though angrily, and then **helps him build and provision a boat**, giving him tools, food, clothing, and favorable wind so he can depart.[1]\n\n- **Possible children (later traditions):** Homer does *not* mention children from their union. Later accounts vary: some say Calypso bore Odysseus **a son Latinus**, while others say she had **two sons, Nausithous and Nausinous**, by him.[1]\n\n- **Aftermath in later myth:** In one later source, **Hyginus** reports that Calypso **killed herself because of her love for Odysseus**, emphasizing how one‑sided and consuming her attachment was.[1]\n\nIn sum, Calypso is Odysseus’s immortal lover and captor, offering him eternal life and desiring him deeply, while he longs only to leave her island and return to his mortal wife and home.\n\n### References\n\n- [1] Calypso (mythology)",
+    "cache_type": "query",
+    "chunk_id": null,
+    "original_prompt": "What is calypso's relationship to odysseus?",
+    "queryparam": {
+      "mode": "mix",
+      "response_type": "Multiple Paragraphs",
+      "top_k": 40,
+      "chunk_top_k": 20,
+      "max_entity_tokens": 6000,
+      "max_relation_tokens": 8000,
+      "max_total_tokens": 30000,
+      "hl_keywords": "Mythological relationships, Characters in The Odyssey, Greek mythology",
+      "ll_keywords": "Calypso, Odysseus, Calypso's relationship to Odysseus, Homer, The Odyssey, Nymph, Ogygia",
+      "user_prompt": "",
+      "enable_rerank": true
+    },
+    "create_time": 1772510979,
+    "update_time": 1772510979,
+    "_id": "mix:query:3e0af62bf3397044a671864bb8185f47"
+  },
+  "mix:keywords:c84ee4e8570a00e3b37db1c9498dca09": {
+    "return": "{\"high_level_keywords\": [\"Identity inquiry\", \"Fictional characters\", \"Historical figures\"], \"low_level_keywords\": [\"Homer\", \"Greek poet\", \"Author of the Iliad\", \"Author of the Odyssey\", \"Homer Simpson\", \"The Simpsons\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "original_prompt": "who is homer?",
+    "queryparam": {
+      "mode": "mix",
+      "response_type": "Multiple Paragraphs",
+      "top_k": 40,
+      "chunk_top_k": 20,
+      "max_entity_tokens": 6000,
+      "max_relation_tokens": 8000,
+      "max_total_tokens": 30000,
+      "user_prompt": "",
+      "enable_rerank": true
+    },
+    "create_time": 1772511549,
+    "update_time": 1772511549,
+    "_id": "mix:keywords:c84ee4e8570a00e3b37db1c9498dca09"
+  },
+  "mix:query:8aedacbb876b74ecae30ed2fdcbfada5": {
+    "return": "Homer is an ancient Greek poet who is traditionally credited as the author of *The Odyssey*. In this epic poem, he narrates, among other events, how the nymph Calypso detains the hero Odysseus on the island of Ogygia and how Odysseus is eventually released. Homer’s *Odyssey* is a central work for later discussions of Odysseus, Calypso, and related myths.  \n\n### References\n\n- [1] Calypso (mythology)",
+    "cache_type": "query",
+    "chunk_id": null,
+    "original_prompt": "who is homer?",
+    "queryparam": {
+      "mode": "mix",
+      "response_type": "Multiple Paragraphs",
+      "top_k": 40,
+      "chunk_top_k": 20,
+      "max_entity_tokens": 6000,
+      "max_relation_tokens": 8000,
+      "max_total_tokens": 30000,
+      "hl_keywords": "Identity inquiry, Fictional characters, Historical figures",
+      "ll_keywords": "Homer, Greek poet, Author of the Iliad, Author of the Odyssey, Homer Simpson, The Simpsons",
+      "user_prompt": "",
+      "enable_rerank": true
+    },
+    "create_time": 1772511554,
+    "update_time": 1772511554,
+    "_id": "mix:query:8aedacbb876b74ecae30ed2fdcbfada5"
   }
 }

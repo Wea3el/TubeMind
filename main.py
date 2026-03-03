@@ -228,113 +228,11 @@ app, rt = fast_app(
     title="TubeMind Wikipedia GraphRAG",
     pico=False,
     hdrs=(
-        *Theme.zinc.headers(
+        *Theme.orange.headers(
             mode="light",
             radii=ThemeRadii.lg,
             shadows=ThemeShadows.md,
             font=ThemeFont.default,
-        ),
-        Style(
-            """
-            :root {
-                --page-glow: radial-gradient(circle at top left, hsla(var(--primary), 0.24), transparent 34%);
-                --page-glow-secondary: radial-gradient(circle at top right, rgba(255, 255, 255, 0.82), transparent 38%);
-                --page-base: linear-gradient(180deg, #fffdf8 0%, #f5f1e7 100%);
-                --panel-border: rgba(73, 57, 31, 0.10);
-                --panel-shadow: 0 22px 60px rgba(73, 57, 31, 0.10);
-            }
-            body {
-                min-height: 100vh;
-                background:
-                    var(--page-glow),
-                    var(--page-glow-secondary),
-                    var(--page-base);
-                color: #201811;
-            }
-            main.tubemind-shell {
-                max-width: 980px;
-                margin: 0 auto;
-                padding: 2rem 1.25rem 4rem;
-            }
-            .tm-app-grid,
-            .tm-panel {
-                border: 1px solid var(--panel-border);
-                border-radius: 1.5rem;
-                background: rgba(255, 255, 255, 0.74);
-                backdrop-filter: blur(14px);
-                box-shadow: 0 14px 40px rgba(73, 57, 31, 0.08);
-            }
-            .tm-app-grid {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 1.1rem;
-            }
-            .tm-panel {
-                padding: 1.4rem;
-            }
-            .tm-panel h2 {
-                margin-bottom: 0.5rem;
-                font-size: 1.45rem;
-                line-height: 1.1;
-            }
-            .tm-panel p {
-                color: rgba(32, 24, 17, 0.72);
-            }
-            .tm-panel form {
-                display: grid;
-                gap: 0.9rem;
-                margin-top: 1rem;
-            }
-            .tm-panel textarea,
-            .tm-panel select {
-                border-radius: 1rem;
-                border: 1px solid rgba(73, 57, 31, 0.14);
-                background: rgba(255, 252, 247, 0.92);
-            }
-            .tm-panel textarea {
-                min-height: 138px;
-            }
-            .tm-panel button {
-                justify-content: center;
-                min-height: 3rem;
-                font-weight: 700;
-            }
-            #response-area pre {
-                margin-top: 1rem;
-                padding: 1.15rem;
-                white-space: pre-wrap;
-                border-radius: 1.2rem;
-                background: rgba(27, 23, 18, 0.94);
-                color: #fff7ea;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-            }
-            .tm-response {
-                margin-top: 1.5rem;
-                padding: 1.5rem;
-            }
-            .tm-response details {
-                margin-top: 1rem;
-                overflow: hidden;
-                border-radius: 1rem;
-                background: rgba(255, 255, 255, 0.68);
-            }
-            .tm-response ul {
-                margin: 0;
-                padding: 0 1rem 1rem 2.2rem;
-            }
-            .htmx-indicator {
-                display: none;
-            }
-            .htmx-request.htmx-indicator,
-            .htmx-request .htmx-indicator {
-                display: block;
-            }
-            @media (max-width: 920px) {
-                .tm-app-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-            """
         ),
     ),
     on_startup=[app_state.startup],
@@ -343,96 +241,170 @@ app, rt = fast_app(
 
 
 def page_main(*content: Any):
-    """Render the full application shell.
+    """Render the compact application shell for both full-page and HTMX updates.
 
-    This function intentionally renders only the interactive application
-    surface: the two workflow forms and the response area. HTMX swaps replace
-    the full `main` element, so this wrapper keeps the form layout stable
-    without reintroducing decorative hero content or nonessential controls.
+    This function exists to keep the page focused on the working controls
+    rather than decorative marketing structure. It assembles a small status
+    toolbar, a persistent corpus summary, the two workflow forms, and the
+    shared response workspace into one `main` tree so partial swaps and full
+    navigations always present the same application-first layout.
+
+    MonsterUI components are used directly for spacing, hierarchy, and status
+    treatment instead of custom CSS. The result is intentionally dense and
+    utilitarian: the user lands in the app immediately, can see corpus state
+    at a glance, and can move between seeding and querying without scrolling
+    past explanatory chrome.
     """
     state = app_state.state
     seed_button_label = "Index corpus and answer" if not state.indexed else "Corpus already indexed"
-    query_button_cls = "uk-btn uk-btn-primary"
-    seed_button_cls = "uk-btn uk-btn-primary"
     return Main(
-        Div(
-            Card(
-                H2("Seed the knowledge base"),
-                P(
-                    "Search Wikipedia, pull the top articles into LightRAG, and generate the first answer from the newly built graph."
-                ),
-                Form(
-                    Label("Wikipedia topic or search phrase", _for="seed_query"),
-                    Textarea(
-                        state.seed_query or "",
-                        id="seed_query",
-                        name="seed_query",
-                        placeholder="Example: Ada Lovelace and the analytical engine",
-                        disabled=state.indexed,
+        Section(
+            Container(
+                DivVStacked(
+                    DivFullySpaced(
+                        DivVStacked(
+                            H1("TubeMind", cls="mb-0"),
+                            Small("Wikipedia GraphRAG workspace", cls=TextT.muted),
+                            cls="items-start space-y-1",
+                        ),
+                        DivHStacked(
+                            Label("Corpus ready" if state.indexed else "Awaiting seed", cls=LabelT.primary if state.indexed else LabelT.secondary),
+                            Label(f"{len(state.indexed_titles)} articles", cls=LabelT.secondary),
+                            cls="gap-3 flex-wrap",
+                        ),
+                        cls="gap-4 flex-wrap",
                     ),
-                    Small("Indexing is intentionally one-time for this demo so follow-up questions stay fast and deterministic."),
-                    Button(
-                        seed_button_label,
-                        type="submit",
-                        disabled=state.indexed,
-                        cls=seed_button_cls,
-                        hx_post="/seed",
-                        hx_target="main",
-                        hx_swap="outerHTML",
-                        hx_indicator="#seed-indicator",
+                    Grid(
+                        DivVStacked(
+                            Grid(
+                                Card(
+                                    Form(
+                                        LabelTextArea(
+                                            "Wikipedia topic or search phrase",
+                                            value=state.seed_query or "",
+                                            id="seed_query",
+                                            placeholder="Example: Ada Lovelace and the analytical engine",
+                                            disabled=state.indexed,
+                                            input_cls="min-h-40",
+                                        ),
+                                        LoaderButton(
+                                            seed_button_label,
+                                            type="submit",
+                                            disabled=state.indexed,
+                                            cls=(ButtonT.primary, ButtonT.lg, "w-full justify-center"),
+                                            hx_post="/seed",
+                                            hx_target="main",
+                                            hx_swap="outerHTML",
+                                        ),
+                                    ),
+                                    DivVStacked(
+                                        (
+                                            Accordion(
+                                                AccordionItem(
+                                                    f"Indexed titles ({len(state.indexed_titles)})",
+                                                    Ul(
+                                                        *[
+                                                            Li(
+                                                                A(
+                                                                    title,
+                                                                    href=app_state.state.page_urls.get(title, "#"),
+                                                                    target="_blank",
+                                                                    cls=AT.muted,
+                                                                )
+                                                            )
+                                                            for title in state.indexed_titles
+                                                        ],
+                                                        cls=ListT.divider,
+                                                    ),
+                                                    open=False,
+                                                ),
+                                            )
+                                            if state.indexed_titles
+                                            else P("Titles will appear here after the corpus is indexed.", cls=TextPresets.muted_sm)
+                                        ),
+                                        cls="items-start space-y-3",
+                                    ),
+                                    header=DivVStacked(
+                                        DivHStacked(
+                                            UkIcon("database", cls="size-5"),
+                                            CardTitle("Seed corpus"),
+                                            cls="gap-2",
+                                        ),
+                                        Small(
+                                            "Search Wikipedia, index the top articles, and answer the seed topic from the new graph.",
+                                            cls=TextT.muted,
+                                        ),
+                                        cls="items-start space-y-1",
+                                    ),
+                                    footer=DivFullySpaced(
+                                        Small("One-time ingestion for the active corpus.", cls=TextT.muted),
+                                        Label("Locked after index" if state.indexed else "Ready to index", cls=LabelT.secondary if state.indexed else LabelT.primary),
+                                    ),
+                                    
+                                    cls=CardT.primary,
+                                ),
+                                Card(
+                                    Form(
+                                        LabelTextArea(
+                                            "Question",
+                                            id="query",
+                                            placeholder="Ask about the indexed Wikipedia corpus",
+                                            input_cls="min-h-40",
+                                        ),
+                                        LabelSelect(
+                                            *[
+                                                Option(mode.upper(), value=mode, selected=mode == DEFAULT_QUERY_MODE)
+                                                for mode in QUERY_MODES
+                                            ],
+                                            label="Retrieval mode",
+                                            id="mode",
+                                            disabled=not state.indexed,
+                                        ),
+                                        LoaderButton(
+                                            "Query graph",
+                                            type="submit",
+                                            disabled=not state.indexed,
+                                            cls=(ButtonT.secondary, ButtonT.lg, "w-full justify-center"),
+                                            hx_post="/query",
+                                            hx_target="main",
+                                            hx_swap="outerHTML",
+                                        ),
+                                    ),
+                                    header=DivVStacked(
+                                        DivHStacked(
+                                            UkIcon("sparkles", cls="size-5"),
+                                            CardTitle("Ask the graph"),
+                                            cls="gap-2",
+                                        ),
+                                        Small(
+                                            "Run repeated analysis against the stored graph without triggering a new ingestion pass.",
+                                            cls=TextT.muted,
+                                        ),
+                                        cls="items-start space-y-1",
+                                    ),
+                                    footer=DivFullySpaced(
+                                        Small("Default mode: ", CodeSpan("mix"), cls=TextT.muted),
+                                        Label("Corpus required", cls=LabelT.primary if state.indexed else LabelT.secondary),
+                                    ),
+                                    cls=CardT.secondary,
+                                ),
+                                cols_lg=2,
+                                cols_min=1,
+                                cls="gap-6",
+                            ),
+                            *content if content else (response_panel(),),
+                            cls="space-y-6 lg:col-span-2 w-full items-stretch",
+                        ),
+                        cols_min=1,
+                        cols_lg=3,
+                        cls="gap-6 items-start",
                     ),
+                    cls="space-y-6 w-full items-stretch",
                 ),
-                Div(
-                    P("Indexing in progress. The page will refresh with the answer when the corpus is ready.", aria_busy="true"),
-                    id="seed-indicator",
-                    cls="htmx-indicator mt-3 text-sm text-[#6a5744]",
-                ),
-                cls="tm-panel",
+                cls="max-w-7xl",
             ),
-            Card(
-                H2("Query the existing graph"),
-                P("Use the saved corpus for repeated analysis without paying the indexing cost again."),
-                Form(
-                    Label("Question", _for="query"),
-                    Textarea(
-                        "",
-                        id="query",
-                        name="query",
-                        placeholder="Ask about the indexed Wikipedia corpus",
-                    ),
-                    Label("Retrieval mode", _for="mode"),
-                    Select(
-                        *[
-                            Option(mode.upper(), value=mode, selected=mode == DEFAULT_QUERY_MODE)
-                            for mode in QUERY_MODES
-                        ],
-                        id="mode",
-                        name="mode",
-                        disabled=not state.indexed,
-                    ),
-                    Small("`mix` is the default because it balances graph context with direct chunk retrieval."),
-                    Button(
-                        "Query graph",
-                        type="submit",
-                        disabled=not state.indexed,
-                        cls=query_button_cls,
-                        hx_post="/query",
-                        hx_target="main",
-                        hx_swap="outerHTML",
-                        hx_indicator="#query-indicator",
-                    ),
-                ),
-                Div(
-                    P("Query in progress. Results will replace the response panel below.", aria_busy="true"),
-                    id="query-indicator",
-                    cls="htmx-indicator mt-3 text-sm text-[#6a5744]",
-                ),
-                cls="tm-panel",
-            ),
-            cls="tm-app-grid",
+            cls=(SectionT.muted, SectionT.lg),
         ),
-        *content if content else (response_panel(),),
-        cls="tubemind-shell",
     )
 
 
@@ -446,81 +418,26 @@ def layout(*content: Any):
     return Title("TubeMind Wikipedia GraphRAG"), page_main(*content)
 
 
-def status_panel() -> Any:
-    """Render the compact corpus status panel.
-
-    This panel exists outside the forms so both workflows can reference the
-    current application state at a glance. It highlights whether indexing has
-    already happened, what seed query produced the corpus, and how many source
-    articles are available for retrieval.
-    """
-    state = app_state.state
-    if state.indexed:
-        return Card(
-            H2("Corpus status"),
-            P("Indexing is complete. Every follow-up question now reuses the existing LightRAG corpus."),
-            Div(
-                Div(
-                    Strong("State"),
-                    Span("Ready"),
-                    cls="tm-status-pill",
-                ),
-                Div(
-                    Strong("Seed query"),
-                    Span(state.seed_query),
-                    cls="tm-status-pill",
-                ),
-                Div(
-                    Strong("Stored articles"),
-                    Span(str(len(state.indexed_titles))),
-                    cls="tm-status-pill",
-                ),
-                cls="tm-status-row",
-            ),
-            cls="tm-panel mt-6",
-        )
-    return Card(
-        H2("Corpus status"),
-        P("No Wikipedia corpus has been indexed yet. Seed the graph once to unlock the follow-up query workflow."),
-        Div(
-            Div(
-                Strong("State"),
-                Span("Waiting"),
-                cls="tm-status-pill",
-            ),
-            Div(
-                Strong("Seed query"),
-                Span("Not set"),
-                cls="tm-status-pill",
-            ),
-            Div(
-                Strong("Stored articles"),
-                Span("0"),
-                cls="tm-status-pill",
-            ),
-            cls="tm-status-row",
-        ),
-        cls="tm-panel mt-6",
-    )
-
-
 def details_block(titles: list[str]) -> Any:
-    """Render the source article list for the current response.
+    """Render the indexed article links as a compact expandable list.
 
-    The response section can show both newly inserted titles and the full saved
-    corpus. Keeping the source list in a collapsible block preserves a clean
-    primary reading experience while still exposing traceability when the user
-    wants to inspect the indexed material.
+    Answers benefit from nearby source access, but the list should stay
+    subordinate to the response body. An accordion keeps the default view
+    compact while still exposing direct links to the indexed pages.
     """
-    return Details(
-        Summary("Indexed articles"),
-        Ul(
-            *[
-                Li(A(title, href=app_state.state.page_urls.get(title, "#"), target="_blank"))
-                for title in titles
-            ]
+    return Accordion(
+        AccordionItem(
+            f"Indexed articles ({len(titles)})",
+            Ul(
+                *[
+                    Li(A(title, href=app_state.state.page_urls.get(title, "#"), target="_blank", cls=AT.primary))
+                    for title in titles
+                ],
+                cls=ListT.divider,
+            ),
+            open=False,
         ),
-        open=True,
+        cls="mt-2",
     )
 
 
@@ -530,20 +447,45 @@ def response_panel(
     answer: str = "",
     titles: list[str] | None = None,
 ) -> Any:
-    """Render the bottom response surface for success, idle, and error states.
+    """Render the shared response workspace for idle, success, and error states.
 
-    This single component is used for the initial empty state, seed results,
-    follow-up answers, and exception messages. Consolidating those states keeps
-    HTMX updates simple and ensures all outcomes share the same visual treatment
-    and source-link affordances.
+    This panel is the main output area for both ingestion and follow-up query
+    flows, so it needs to stay visually calm and readable. The implementation
+    therefore avoids article-style flourishes and instead uses a clean card
+    header, a simple answer body, and an optional source list that expands only
+    when needed.
     """
+    body = (
+        Div(
+            answer,
+            cls="whitespace-pre-wrap leading-7 text-sm",
+        )
+        if answer
+        else Div(
+            P(
+                "Indexing is complete. Every follow-up question now reuses the existing LightRAG corpus."
+                if app_state.state.indexed
+                else "Responses will appear here after you index a corpus or run a follow-up query.",
+                cls=TextPresets.muted_sm,
+            ),
+            cls="rounded-box border border-dashed p-6",
+        )
+    )
     return Card(
-        H2(heading),
-        P(message),
-        Pre(answer) if answer else "",
+        body,
         details_block(titles or []) if titles else "",
+        header=DivFullySpaced(
+            DivVStacked(
+                CardTitle(heading),
+                P(message, cls=TextPresets.muted_sm),
+                cls="items-start space-y-1",
+            ),
+            Label("Ready" if app_state.state.indexed else "Idle", cls=LabelT.primary if app_state.state.indexed else LabelT.secondary),
+            cls="gap-4 flex-wrap",
+        ),
         id="response-area",
-        cls="tm-panel tm-response",
+        cls="w-full",
+        body_cls="space-y-4",
     )
 
 
