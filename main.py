@@ -79,8 +79,8 @@ class WikiGraphApp:
 
         llm_model = partial(
             openai_complete_if_cache,
-            "gpt-5.1",
-            reasoning_effort="none",
+            "gpt-5-nano",
+            reasoning_effort="low",
         )
 
         return LightRAG(
