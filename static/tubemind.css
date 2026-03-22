@@ -263,6 +263,18 @@ textarea { min-height: 180px; }
     font-size: 1.02rem;
     line-height: 1.7;
 }
+.chunk-embed {
+    margin-top: 14px;
+    display: grid;
+    gap: 8px;
+}
+.chunk-embed-frame {
+    width: 100%;
+    min-height: 220px;
+    border: 0;
+    border-radius: 16px;
+    background: #000;
+}
 .small { font-size: 0.92rem; color: var(--muted-ink); }
 .tiny { font-size: 0.84rem; }
 .htmx-indicator { display: none; }

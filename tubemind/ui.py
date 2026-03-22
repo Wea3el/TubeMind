@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-from fasthtml.common import A, Button, Div, Form, H1, H2, H3, Img, Input, Label, Option, P, Pre, Select, Span, Textarea, Title
+from fasthtml.common import A, Button, Div, Form, H1, H2, H3, Iframe, Img, Input, Label, Option, P, Pre, Select, Span, Textarea, Title
 
 from tubemind.auth import ERROR_MESSAGES, begin_oauth_session, google_auth_url
 from tubemind.config import DEFAULT_QUERY_MODE, MAX_RECOMMENDATIONS, PROMPT_SUGGESTIONS, QUERY_MODE_LABELS, SEARCH_ORDER_LABELS
@@ -226,7 +226,13 @@ def render_dashboard(status: Dict[str, Any], notice: str = "") -> Any:
 
 
 def render_answer_panel(*, retrieval: Optional[Dict[str, Any]] = None, error: str = "", indexed: bool = False) -> Any:
-    """Render retrieved transcript chunks or a placeholder/error state."""
+    """Render retrieved transcript chunks, with video embeds aligned to chunk start times.
+
+    The transcript text shown here is the clean text indexed into LightRAG, not the
+    timestamp-decorated source transcript. Timing is reconstructed separately from a
+    sidecar transcript artifact so the answer UI can still jump back into the source
+    video at the right moment without polluting the RAG corpus with timestamp tokens.
+    """
 
     if error:
         return Div(
@@ -240,10 +246,19 @@ def render_answer_panel(*, retrieval: Optional[Dict[str, Any]] = None, error: st
             Div(
                 Div(
                     Span(f"Chunk {idx}", cls="micro-pill"),
-                    A(chunk.get("title", "Source video"), href=chunk.get("url", "#"), target="_blank", rel="noreferrer", cls="item-title")
-                    if chunk.get("url")
+                    A(chunk.get("title", "Source video"), href=chunk.get("source_url") or chunk.get("url", "#"), target="_blank", rel="noreferrer", cls="item-title")
+                    if chunk.get("source_url") or chunk.get("url")
                     else P(chunk.get("title", "Indexed transcript"), cls="item-title"),
                     cls="inline-meta",
+                ),
+                (
+                    Div(
+                        Iframe(src=chunk.get("embed_url", ""), title=f"Video source for chunk {idx}", loading="lazy", allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowfullscreen="true", cls="chunk-embed-frame"),
+                        P(f"Starts at {chunk.get('start_label', '0:00')}", cls="tiny"),
+                        cls="chunk-embed",
+                    )
+                    if chunk.get("embed_url")
+                    else ""
                 ),
                 Pre(chunk.get("content", ""), cls="answer-pre"),
                 cls="panel tight",

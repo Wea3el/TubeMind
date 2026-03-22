@@ -14,6 +14,7 @@ import time
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 from youtube_transcript_api import NoTranscriptFound, TooManyRequests, YouTubeRequestFailed, YouTubeTranscriptApi
@@ -439,6 +440,141 @@ class TubeMindApp:
             delay = TRANSCRIPT_REQUEST_DELAY_SECONDS
         return max(0.0, min(10.0, delay))
 
+    def _transcript_cache_dir(self) -> Path:
+        """Return the directory that stores timestamp-preserving transcript artifacts."""
+
+        path = self._user_root / "transcripts"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _transcript_cache_path(self, video_id: str) -> Path:
+        """Return the artifact path for one video's timestamp-preserving transcript."""
+
+        return self._transcript_cache_dir() / f"{video_id}.json"
+
+    def _normalize_alignment_text(self, text: str) -> str:
+        """Normalize transcript text so retrieved chunks can be aligned back to segments.
+
+        LightRAG chunking may change whitespace, and transcript providers can emit
+        noisy line breaks or repeated spacing. This normalization keeps only the
+        semantic text needed for rough substring alignment while preserving a stable
+        character offset model for timestamp lookup.
+        """
+
+        cleaned = re.sub(r"\s+", " ", text or "").strip().lower()
+        return re.sub(r"[^a-z0-9 ]+", "", cleaned)
+
+    def _build_clean_transcript_artifact(self, video: YouTubeVideo, segments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Create the clean transcript text and timestamp lookup artifact for one video.
+
+        TubeMind now stores two representations of each transcript on purpose.
+        LightRAG receives only the clean text without `[t=...]` markers so retrieval
+        quality is not polluted by timestamp tokens, while the sidecar artifact keeps
+        enough segment timing data to reconnect retrieved chunks to their video time.
+        """
+
+        clean_parts: List[str] = []
+        normalized_parts: List[str] = []
+        artifact_segments: List[Dict[str, Any]] = []
+        normalized_cursor = 0
+
+        for segment in segments:
+            cleaned_text = re.sub(r"\s+", " ", str(segment.get("text", "") or "")).strip()
+            if not cleaned_text:
+                continue
+
+            clean_parts.append(cleaned_text)
+            normalized_text = self._normalize_alignment_text(cleaned_text)
+            if not normalized_text:
+                continue
+
+            if normalized_parts:
+                normalized_cursor += 1
+            offset_start = normalized_cursor
+            normalized_parts.append(normalized_text)
+            normalized_cursor += len(normalized_text)
+            artifact_segments.append(
+                {
+                    "start": float(segment.get("start", 0.0) or 0.0),
+                    "text": cleaned_text,
+                    "offset_start": offset_start,
+                    "offset_end": normalized_cursor,
+                }
+            )
+
+        return {
+            "video_id": video.video_id,
+            "url": video.url,
+            "clean_text": " ".join(clean_parts),
+            "normalized_text": " ".join(normalized_parts),
+            "segments": artifact_segments,
+        }
+
+    def _save_transcript_artifact(self, video: YouTubeVideo, segments: List[Dict[str, Any]]) -> str:
+        """Persist the timestamp-preserving transcript artifact and return clean text.
+
+        The returned text is what gets inserted into LightRAG. The artifact on disk
+        is intentionally richer than the ingested text because it exists only to map
+        retrieved chunks back to a start time for embeds and source links.
+        """
+
+        artifact = self._build_clean_transcript_artifact(video, segments)
+        self._transcript_cache_path(video.video_id).write_text(json.dumps(artifact, indent=2), encoding="utf-8")
+        return str(artifact.get("clean_text", "") or "").strip()
+
+    def _video_id_from_url(self, url: str) -> str:
+        """Extract the YouTube video id from a stored watch URL."""
+
+        try:
+            parsed = urlparse(url)
+            return str(parse_qs(parsed.query).get("v", [""])[0] or "").strip()
+        except Exception:
+            return ""
+
+    def _youtube_embed_url(self, video_id: str, start_seconds: float) -> str:
+        """Build an embeddable YouTube URL anchored to the retrieved start time."""
+
+        return f"https://www.youtube.com/embed/{video_id}?start={max(0, int(start_seconds))}&rel=0"
+
+    def _find_chunk_start_seconds(self, video_id: str, chunk_text: str) -> float:
+        """Approximate the start time for a retrieved chunk using the sidecar artifact.
+
+        LightRAG only returns the clean chunk content, not timing metadata. This
+        helper aligns the retrieved text back onto the normalized full transcript and
+        then finds the segment whose range covers that position.
+        """
+
+        artifact_path = self._transcript_cache_path(video_id)
+        if not artifact_path.exists():
+            return 0.0
+
+        try:
+            artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+        except Exception:
+            return 0.0
+
+        normalized_chunk = self._normalize_alignment_text(chunk_text)
+        if not normalized_chunk:
+            return 0.0
+
+        normalized_transcript = str(artifact.get("normalized_text", "") or "")
+        if not normalized_transcript:
+            return 0.0
+
+        offset = normalized_transcript.find(normalized_chunk)
+        if offset < 0:
+            excerpt = normalized_chunk[:120]
+            if not excerpt:
+                return 0.0
+            offset = normalized_transcript.find(excerpt)
+        if offset < 0:
+            return 0.0
+
+        for segment in artifact.get("segments", []) or []:
+            if int(segment.get("offset_end", 0) or 0) >= offset:
+                return float(segment.get("start", 0.0) or 0.0)
+        return 0.0
+
     def _serialize_recommendation(self, video: YouTubeVideo) -> Dict[str, Any]:
         return {
             "videoId": video.video_id,
@@ -713,16 +849,6 @@ class TubeMindApp:
 
         return None, last_err or "unknown transcript error"
 
-    def _format_transcript(self, segments: List[Dict[str, Any]]) -> str:
-        lines: List[str] = []
-        for segment in segments:
-            start_time = float(segment.get("start", 0.0) or 0.0)
-            text = str(segment.get("text", "")).replace("\n", " ").strip()
-            if not text:
-                continue
-            lines.append(f"[t={start_time:.1f}] {text}")
-        return "\n".join(lines)
-
     def start_youtube_index_job(self, query: str, *, max_videos: int, min_seconds: int, order: str) -> str:
         """Start the background indexing workflow for a new YouTube corpus topic."""
 
@@ -821,7 +947,7 @@ class TubeMindApp:
                 continue
 
             consecutive_rate_limits = 0
-            transcript = self._format_transcript(segments)
+            transcript = self._save_transcript_artifact(video, segments)
             if not transcript.strip():
                 with self.lock:
                     self.state.youtube_skipped.append(
@@ -836,21 +962,7 @@ class TubeMindApp:
                     self._publish_dashboard_state()
                 continue
 
-            document = "\n\n".join(
-                [
-                    "Source: YouTube",
-                    f"Title: {video.title}",
-                    f"Channel: {video.channel_title}",
-                    f"PublishedAt: {video.published_at}",
-                    f"DurationSec: {video.duration_sec}",
-                    f"VideoURL: {video.url}",
-                    "",
-                    "Transcript (timestamped, seconds):",
-                    transcript,
-                    "",
-                    "Instruction: cite timestamps by writing VideoURL&t=SECONDS.",
-                ]
-            )
+            document = transcript
 
             documents.append(document)
             ids.append(f"youtube:{video.video_id}")
@@ -931,6 +1043,8 @@ class TubeMindApp:
         cleaned_chunks: List[Dict[str, str]] = []
         for chunk in chunks:
             file_path = str(chunk.get("file_path") or "").strip()
+            video_id = self._video_id_from_url(file_path)
+            start_seconds = self._find_chunk_start_seconds(video_id, str(chunk.get("content") or ""))
             cleaned_chunks.append(
                 {
                     "title": title_by_url.get(file_path, file_path or "Indexed transcript"),
@@ -938,6 +1052,11 @@ class TubeMindApp:
                     "content": str(chunk.get("content") or "").strip(),
                     "reference_id": str(chunk.get("reference_id") or "").strip(),
                     "chunk_id": str(chunk.get("chunk_id") or "").strip(),
+                    "video_id": video_id,
+                    "start_seconds": start_seconds,
+                    "embed_url": self._youtube_embed_url(video_id, start_seconds) if video_id else "",
+                    "source_url": yt_watch_url(video_id, start_seconds) if video_id else file_path,
+                    "start_label": seconds_to_label(int(start_seconds)),
                 }
             )
 
