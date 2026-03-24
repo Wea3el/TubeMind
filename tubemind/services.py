@@ -227,6 +227,36 @@ class TubeMindApp:
         self.state.youtube_excluded_channels = excluded_channels
         self.state.youtube_preferred_only = preferred_only
 
+    def _merge_channel_filters(self, *groups: List[str]) -> List[str]:
+        """Merge channel filters while keeping display values readable and unique."""
+
+        merged: List[str] = []
+        seen: set[str] = set()
+        for group in groups:
+            for channel in group or []:
+                normalized = self._normalize_channel_label(channel)
+                if not normalized or normalized in seen:
+                    continue
+                seen.add(normalized)
+                merged.append(str(channel).strip())
+        return merged
+
+    def _effective_excluded_channels(self, excluded_channels: Optional[List[str]] = None) -> List[str]:
+        """Combine run-specific exclusions with the user's saved global blacklist."""
+
+        with self.lock:
+            saved_blacklist = list(self.state.youtube_global_excluded_channels)
+        return self._merge_channel_filters(saved_blacklist, excluded_channels or [])
+
+    def save_global_channel_blacklist(self, raw_value: str) -> List[str]:
+        """Persist the user's always-on channel blacklist."""
+
+        parsed = self._parse_channel_filters(raw_value)
+        with self.lock:
+            self.state.youtube_global_excluded_channels = parsed
+            self._publish_dashboard_state()
+        return parsed
+
     def _doc_item_key(self, doc_id: str, item: Dict[str, str]) -> str:
         """Build a stable per-video key for deduplicating doc-status records."""
 
@@ -493,7 +523,7 @@ class TubeMindApp:
             )
 
         preferred_channels = preferred_channels or []
-        excluded_channels = excluded_channels or []
+        excluded_channels = self._effective_excluded_channels(excluded_channels)
 
         if excluded_channels:
             videos = [
@@ -978,6 +1008,7 @@ class TubeMindApp:
         preferred_channels_raw: str = "",
         excluded_channels_raw: str = "",
         preferred_only: bool = False,
+        selected_video_ids: Optional[List[str]] = None,
     ) -> str:
         """Start the background indexing workflow for a new YouTube corpus topic."""
 
@@ -987,6 +1018,7 @@ class TubeMindApp:
 
         preferred_channels = self._parse_channel_filters(preferred_channels_raw)
         excluded_channels = self._parse_channel_filters(excluded_channels_raw)
+        selected_ids = [str(video_id).strip() for video_id in (selected_video_ids or []) if str(video_id).strip()]
 
         with self.lock:
             self._store_channel_filters(preferred_channels, excluded_channels, preferred_only)
@@ -999,7 +1031,7 @@ class TubeMindApp:
 
             def runner():
                 try:
-                    asyncio.run(self._run_youtube_index_job(job_id, normalized, max_videos, min_seconds, order))
+                    asyncio.run(self._run_youtube_index_job(job_id, normalized, max_videos, min_seconds, order, selected_ids))
                 except Exception as exc:
                     with self.lock:
                         self.state.youtube_indexed = False
@@ -1012,8 +1044,19 @@ class TubeMindApp:
             self._bg_thread.start()
             return job_id
 
-    async def _run_youtube_index_job(self, job_id: str, query: str, max_videos: int, min_seconds: int, order: str) -> None:
+    async def _run_youtube_index_job(
+        self,
+        job_id: str,
+        query: str,
+        max_videos: int,
+        min_seconds: int,
+        order: str,
+        selected_video_ids: Optional[List[str]] = None,
+    ) -> None:
+        selected_set = {str(video_id).strip() for video_id in (selected_video_ids or []) if str(video_id).strip()}
         candidate_pool = self._transcript_candidate_pool(max_videos)
+        if selected_set:
+            candidate_pool = max(candidate_pool, 20)
         with self.lock:
             preferred_channels = list(self.state.youtube_preferred_channels)
             excluded_channels = list(self.state.youtube_excluded_channels)
@@ -1028,6 +1071,8 @@ class TubeMindApp:
             excluded_channels=excluded_channels,
             preferred_only=preferred_only,
         )
+        if selected_set:
+            videos = [video for video in videos if video.video_id in selected_set]
 
         with self.lock:
             if self.state.job_id != job_id:
@@ -1035,8 +1080,10 @@ class TubeMindApp:
             self._save_recommendations(videos)
             if not videos:
                 filter_hint = ""
-                if preferred_channels or excluded_channels:
-                    filter_hint = " Try loosening the channel filters or search a broader topic."
+                if selected_set:
+                    filter_hint = " Preview the candidate list again and reselect the videos you want to include."
+                elif preferred_channels or excluded_channels or self.state.youtube_global_excluded_channels:
+                    filter_hint = " Try loosening the channel filters, changing your saved blacklist, or searching a broader topic."
                 self._set_job(
                     active=False,
                     stage="error",
@@ -1240,6 +1287,7 @@ class TubeMindApp:
                 "filters": {
                     "preferred_channels": state.youtube_preferred_channels,
                     "excluded_channels": state.youtube_excluded_channels,
+                    "global_excluded_channels": state.youtube_global_excluded_channels,
                     "preferred_only": state.youtube_preferred_only,
                 },
                 "count": len(indexed_titles),

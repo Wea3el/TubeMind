@@ -71,6 +71,7 @@ class CorpusState:
     youtube_seed_query: str = ""
     youtube_preferred_channels: List[str] = field(default_factory=list)
     youtube_excluded_channels: List[str] = field(default_factory=list)
+    youtube_global_excluded_channels: List[str] = field(default_factory=list)
     youtube_preferred_only: bool = False
     youtube_video_ids: List[str] = field(default_factory=list)
     youtube_titles: List[str] = field(default_factory=list)
@@ -99,6 +100,7 @@ class CorpusState:
             youtube_seed_query=str(data.get("youtube_seed_query", "")),
             youtube_preferred_channels=[str(x) for x in data.get("youtube_preferred_channels", [])],
             youtube_excluded_channels=[str(x) for x in data.get("youtube_excluded_channels", [])],
+            youtube_global_excluded_channels=[str(x) for x in data.get("youtube_global_excluded_channels", [])],
             youtube_preferred_only=bool(data.get("youtube_preferred_only", False)),
             youtube_video_ids=[str(x) for x in data.get("youtube_video_ids", [])],
             youtube_titles=[str(x) for x in data.get("youtube_titles", [])],
@@ -124,6 +126,7 @@ class CorpusState:
             "youtube_seed_query": self.youtube_seed_query,
             "youtube_preferred_channels": self.youtube_preferred_channels,
             "youtube_excluded_channels": self.youtube_excluded_channels,
+            "youtube_global_excluded_channels": self.youtube_global_excluded_channels,
             "youtube_preferred_only": self.youtube_preferred_only,
             "youtube_video_ids": self.youtube_video_ids,
             "youtube_titles": self.youtube_titles,

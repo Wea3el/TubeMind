@@ -26,6 +26,103 @@ def format_filter_text(values: list[str]) -> str:
     return "\n".join(values)
 
 
+def render_channel_settings_panel(saved_blacklist_text: str = "", notice: str = "") -> Any:
+    """Render the user's always-on channel blacklist settings."""
+
+    return Div(
+        H3("Channel Settings", cls="section-title"),
+        P("Save a general blacklist for channels you never want TubeMind to search or index.", cls="section-copy"),
+        Div(notice, cls="login-error") if notice else "",
+        Form(
+            Div(
+                Label("Always Exclude Channels", cls="field-label"),
+                Textarea(saved_blacklist_text, name="global_excluded_channels", placeholder="One channel per line. TubeMind will apply this list to every future run automatically.", rows=4),
+                P("Use this for creators you always want hidden. Run-specific exclusions in Step 1 still work on top of this saved blacklist.", cls="field-help"),
+                cls="field",
+            ),
+            Div(
+                Button("Save Channel Blacklist", type="submit", cls="primary-btn"),
+                Span("Saving your settings...", cls="htmx-indicator small"),
+                cls="action-row",
+            ),
+            _hx_post="/api/channel_settings",
+            _hx_target="#channel-settings-panel",
+            _hx_swap="outerHTML",
+        ),
+        id="channel-settings-panel",
+        cls="panel",
+    )
+
+
+def render_search_preview_panel(
+    *,
+    results: Optional[list[Dict[str, Any]]] = None,
+    query: str = "",
+    error: str = "",
+) -> Any:
+    """Render candidate videos with per-run include checkboxes."""
+
+    if error:
+        return Div(
+            H3("Choose Videos For This Run", cls="section-title"),
+            P(error, cls="section-copy"),
+            id="search-preview-panel",
+            cls="preview-panel preview-panel-error",
+        )
+
+    if results:
+        select_all_js = "document.querySelectorAll('#search-preview-panel input[name=\"selected_video_ids\"]').forEach((cb) => { cb.checked = true; });"
+        clear_all_js = "document.querySelectorAll('#search-preview-panel input[name=\"selected_video_ids\"]').forEach((cb) => { cb.checked = false; });"
+        preview_cards = [
+            Label(
+                Input(type="checkbox", name="selected_video_ids", value=item["videoId"], checked=True),
+                Img(src=item.get("thumbnail", ""), alt=item.get("title", "Video thumbnail"), cls="preview-thumb")
+                if item.get("thumbnail")
+                else Div("No thumbnail", cls="preview-thumb preview-thumb-empty"),
+                Div(
+                    Div(
+                        P(item.get("title", "Untitled video"), cls="item-title"),
+                        P(item.get("channelTitle", "Unknown channel"), cls="item-copy"),
+                        cls="preview-copy",
+                    ),
+                    Div(
+                        Span(item.get("durationLabel", ""), cls="micro-pill") if item.get("durationLabel") else Span("Video", cls="micro-pill"),
+                        A("Open on YouTube", href=item.get("url", "#"), target="_blank", rel="noreferrer", cls="tiny"),
+                        cls="preview-line",
+                    ),
+                    cls="preview-meta",
+                ),
+                cls="preview-card",
+            )
+            for item in results
+        ]
+        return Div(
+            H3("Choose Videos For This Run", cls="section-title"),
+            P(f"Previewed {len(results)} candidate videos for '{query}'. Every video starts selected, so uncheck any results you want to leave out before indexing.", cls="section-copy"),
+            Input(type="hidden", name="preview_loaded", value="true"),
+            Div(
+                Button("Select All", type="button", cls="prompt-chip", onclick=select_all_js),
+                Button("Clear All", type="button", cls="prompt-chip", onclick=clear_all_js),
+                P("These checkboxes only affect the current indexing run.", cls="small"),
+                cls="action-row preview-actions",
+            ),
+            Div(*preview_cards, cls="preview-grid"),
+            id="search-preview-panel",
+            cls="preview-panel",
+        )
+
+    return Div(
+        H3("Choose Videos For This Run", cls="section-title"),
+        P("Preview candidate videos if you want per-video control before TubeMind starts transcript fetching.", cls="section-copy"),
+        Div(
+            P("Click `Preview Candidate Videos` to load selectable results. If you skip preview, TubeMind will use the top-ranked transcript-enabled matches automatically.", cls="item-copy"),
+            cls="empty-state",
+        ),
+        id="search-preview-panel",
+        cls="preview-panel",
+    )
+
+
 def friendly_job_stage(stage: str) -> str:
     """Translate internal job stage ids into dashboard labels."""
 
@@ -101,6 +198,7 @@ def render_dashboard_fragment(status: Dict[str, Any], notice: str = "") -> Any:
     recommendations = youtube.get("recommendations", []) or []
     preferred_channels = list(filters.get("preferred_channels", []) or [])
     excluded_channels = list(filters.get("excluded_channels", []) or [])
+    global_excluded_channels = list(filters.get("global_excluded_channels", []) or [])
     preferred_only = bool(filters.get("preferred_only", False))
     rate_limit_count = sum(
         1
@@ -160,7 +258,7 @@ def render_dashboard_fragment(status: Dict[str, Any], notice: str = "") -> Any:
         P(job["message"] or "Search a topic, index a few transcript-enabled videos, then ask questions in plain English.", cls="section-copy"),
     ]
 
-    if preferred_channels or excluded_channels:
+    if preferred_channels or excluded_channels or global_excluded_channels:
         filter_chips = []
         if preferred_channels:
             label = "Only: " if preferred_only else "Prefer: "
@@ -171,6 +269,10 @@ def render_dashboard_fragment(status: Dict[str, Any], notice: str = "") -> Any:
             filter_chips.append(Span(f"Hide: {', '.join(excluded_channels[:3])}", cls="micro-pill"))
             if len(excluded_channels) > 3:
                 filter_chips.append(Span(f"+{len(excluded_channels) - 3} more excluded", cls="micro-pill"))
+        if global_excluded_channels:
+            filter_chips.append(Span(f"Always block: {', '.join(global_excluded_channels[:3])}", cls="micro-pill"))
+            if len(global_excluded_channels) > 3:
+                filter_chips.append(Span(f"+{len(global_excluded_channels) - 3} more saved blocks", cls="micro-pill"))
         summary_children.append(Div(*filter_chips, cls="status-row"))
 
     if notice:
@@ -366,13 +468,14 @@ def render_login_page(session, error: str = "") -> Any:
     )
 
 
-def home_page(app_state: TubeMindApp, user: Any) -> Any:
+def home_page(app_state: TubeMindApp, user: Any, notice: str = "") -> Any:
     """Render the primary authenticated TubeMind workspace."""
 
     status = app_state.status_payload()
     filters = status["youtube"].get("filters", {}) or {}
     preferred_channels_text = format_filter_text(list(filters.get("preferred_channels", []) or []))
     excluded_channels_text = format_filter_text(list(filters.get("excluded_channels", []) or []))
+    saved_blacklist_text = format_filter_text(list(filters.get("global_excluded_channels", []) or []))
     preferred_only = bool(filters.get("preferred_only", False))
     return Div(
         Div(render_user_badge(user), cls="page-header"),
@@ -396,49 +499,69 @@ def home_page(app_state: TubeMindApp, user: Any) -> Any:
             ),
             cls="hero hero-grid",
         ),
-        render_dashboard(status),
+        render_dashboard(status, notice=notice),
         Div(
             Div(
-                H3("Step 1: Build the Corpus", cls="section-title"),
-                P("Pick a topic, choose how YouTube should sort results, and set how many videos TubeMind should try to ingest.", cls="section-copy"),
-                Form(
-                    Div(
-                        Div(Label("Search Topic", cls="field-label"), Input(id="query-input", type="text", name="query", value=status["youtube"].get("seed_query", ""), placeholder="Example: machine learning for beginners"), P("Use a phrase close to what a real person would search on YouTube.", cls="field-help"), cls="field"),
-                        Div(Label("Sort Results By", cls="field-label"), Select(*[Option(label, value=value, selected=(value == "relevance")) for value, label in SEARCH_ORDER_LABELS.items()], name="order"), P("Best Match is safest. Newest First is useful for recent topics.", cls="field-help"), cls="field"),
-                        Div(Label("How Many Videos", cls="field-label"), Input(type="number", name="max_videos", value="8", min="1", max="15"), P("TubeMind will stop once it has enough successful transcript matches.", cls="field-help"), cls="field"),
-                        Div(Label("Minimum Video Length (seconds)", cls="field-label"), Input(type="number", name="min_seconds", value="240", min="60", max="3600"), P("Higher values usually reduce short, low-signal clips.", cls="field-help"), cls="field"),
-                        cls="field-grid",
-                    ),
-                    Div(
+                Div(
+                    H3("Step 1: Build the Corpus", cls="section-title"),
+                    P("Pick a topic, choose how YouTube should sort results, preview the candidate videos, and uncheck any results you do not want in this run.", cls="section-copy"),
+                    Form(
                         Div(
-                            Label("Preferred Channels", cls="field-label"),
-                            Textarea(preferred_channels_text, name="preferred_channels", placeholder="One channel per line, for example:\nIBM Technology\nFireship", rows=4),
-                            P("TubeMind will prioritize these channels first. Use exact or close channel names.", cls="field-help"),
+                            Div(Label("Search Topic", cls="field-label"), Input(id="query-input", type="text", name="query", value=status["youtube"].get("seed_query", ""), placeholder="Example: machine learning for beginners"), P("Use a phrase close to what a real person would search on YouTube.", cls="field-help"), cls="field"),
+                            Div(Label("Sort Results By", cls="field-label"), Select(*[Option(label, value=value, selected=(value == "relevance")) for value, label in SEARCH_ORDER_LABELS.items()], name="order"), P("Best Match is safest. Newest First is useful for recent topics.", cls="field-help"), cls="field"),
+                            Div(Label("How Many Videos", cls="field-label"), Input(type="number", name="max_videos", value="8", min="1", max="15"), P("TubeMind will stop once it has enough successful transcript matches.", cls="field-help"), cls="field"),
+                            Div(Label("Minimum Video Length (seconds)", cls="field-label"), Input(type="number", name="min_seconds", value="240", min="60", max="3600"), P("Higher values usually reduce short, low-signal clips.", cls="field-help"), cls="field"),
+                            cls="field-grid",
+                        ),
+                        Div(
+                            Div(
+                                Label("Preferred Channels", cls="field-label"),
+                                Textarea(preferred_channels_text, name="preferred_channels", placeholder="One channel per line, for example:\nIBM Technology\nFireship", rows=4),
+                                P("TubeMind will prioritize these channels first. Use exact or close channel names.", cls="field-help"),
+                                cls="field",
+                            ),
+                            Div(
+                                Label("Excluded Channels", cls="field-label"),
+                                Textarea(excluded_channels_text, name="excluded_channels", placeholder="Hide creators you do not want in just this run.", rows=4),
+                                P("These exclusions apply only to the current corpus build. Your saved channel blacklist is applied automatically too.", cls="field-help"),
+                                cls="field",
+                            ),
+                            cls="field-grid",
+                        ),
+                        Div(
+                            Label(
+                                Input(type="checkbox", name="preferred_only", value="true", checked=preferred_only),
+                                Span("Only include preferred channels", cls="field-label"),
+                                cls="toggle-row",
+                            ),
+                            P("Turn this on when you trust a fixed creator list. Leave it off to use those creators as a ranking preference instead.", cls="field-help"),
                             cls="field",
                         ),
                         Div(
-                            Label("Excluded Channels", cls="field-label"),
-                            Textarea(excluded_channels_text, name="excluded_channels", placeholder="Hide creators you do not want in the corpus.", rows=4),
-                            P("Any matching channels will be removed before transcript fetching starts.", cls="field-help"),
-                            cls="field",
+                            Button("Preview Candidate Videos", type="button", cls="prompt-chip", _hx_post="/api/search_preview", _hx_target="#search-preview-panel", _hx_swap="outerHTML", _hx_include="closest form"),
+                            Button(
+                                "Start Fresh",
+                                type="button",
+                                cls="prompt-chip",
+                                _hx_post="/api/reset_youtube",
+                                _hx_target="#workspace-root",
+                                _hx_swap="outerHTML",
+                                _hx_confirm="Clear the current corpus, skipped items, and answers? Saved channel settings will be kept.",
+                            ),
+                            Button("Start Indexing", type="submit", cls="primary-btn"),
+                            Span("TubeMind is building your corpus...", cls="htmx-indicator small"),
+                            P("Preview first if you want per-video control. If you skip preview, TubeMind will use the highest-ranked transcript-enabled matches automatically.", cls="small"),
+                            cls="action-row",
                         ),
-                        cls="field-grid",
+                        render_search_preview_panel(),
+                        _hx_post="/api/seed_youtube",
+                        _hx_target="#dashboard-panels",
+                        _hx_swap="outerHTML",
                     ),
-                    Div(
-                        Label(
-                            Input(type="checkbox", name="preferred_only", value="true", checked=preferred_only),
-                            Span("Only include preferred channels", cls="field-label"),
-                            cls="toggle-row",
-                        ),
-                        P("Turn this on when you trust a fixed creator list. Leave it off to use those creators as a ranking preference instead.", cls="field-help"),
-                        cls="field",
-                    ),
-                    Div(Button("Start Indexing", type="submit", cls="primary-btn"), Span("TubeMind is building your corpus...", cls="htmx-indicator small"), P("You can keep watching the live dashboard while indexing runs.", cls="small"), cls="action-row"),
-                    _hx_post="/api/seed_youtube",
-                    _hx_target="#dashboard-panels",
-                    _hx_swap="outerHTML",
+                    cls="panel",
                 ),
-                cls="panel",
+                render_channel_settings_panel(saved_blacklist_text),
+                cls="panel-stack",
             ),
             Div(
                 H3("Step 2: Ask Questions", cls="section-title"),
@@ -476,4 +599,5 @@ def home_page(app_state: TubeMindApp, user: Any) -> Any:
             cls="panel dev-panel",
         ),
         cls="wrap",
+        id="workspace-root",
     )

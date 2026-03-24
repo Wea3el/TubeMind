@@ -27,7 +27,14 @@ from tubemind.config import (
 )
 from tubemind.models import seconds_to_label
 from tubemind.services import get_user_app, shutdown_all_user_apps
-from tubemind.ui import home_page, render_answer_panel, render_dashboard_fragment, render_login_page
+from tubemind.ui import (
+    home_page,
+    render_answer_panel,
+    render_channel_settings_panel,
+    render_dashboard_fragment,
+    render_login_page,
+    render_search_preview_panel,
+)
 
 
 def sse_message(fragment, *, event: str) -> str:
@@ -193,13 +200,16 @@ def create_app():
             min_seconds = int(minSeconds) if str(minSeconds).isdigit() else 240
             max_results = int(maxResults) if str(maxResults).isdigit() else 12
             max_results = max(1, min(25, max_results))
+            preferred_channels = app_state._parse_channel_filters(preferredChannels)
+            excluded_channels = app_state._parse_channel_filters(excludedChannels)
+            effective_excluded_channels = app_state._effective_excluded_channels(excluded_channels)
             videos = await app_state.youtube_search(
                 q.strip(),
                 max_videos=max_results,
                 min_seconds=min_seconds,
                 order=order,
-                preferred_channels=app_state._parse_channel_filters(preferredChannels),
-                excluded_channels=app_state._parse_channel_filters(excludedChannels),
+                preferred_channels=preferred_channels,
+                excluded_channels=excluded_channels,
                 preferred_only=form_bool(preferredOnly),
             )
             return {
@@ -209,6 +219,8 @@ def create_app():
                 "filters": {
                     "preferredChannels": preferredChannels,
                     "excludedChannels": excludedChannels,
+                    "globalExcludedChannels": "\n".join(app_state.state.youtube_global_excluded_channels),
+                    "effectiveExcludedChannels": "\n".join(effective_excluded_channels),
                     "preferredOnly": form_bool(preferredOnly),
                 },
                 "results": [
@@ -227,6 +239,86 @@ def create_app():
             }
         except Exception as exc:
             return {"error": str(exc), "query": q, "results": []}
+
+    @rt("/api/search_preview", methods=["POST"])
+    async def api_search_preview(request: Request, session):
+        user = current_user(session)
+        if not user:
+            return RedirectResponse("/login", status_code=303)
+        app_state = await get_user_app(user["id"])
+        form = await request.form()
+        query = str(form.get("query", "") or "")
+        order = str(form.get("order", "relevance") or "relevance")
+        max_videos = str(form.get("max_videos", str(MAX_VIDEOS_DEFAULT)) or str(MAX_VIDEOS_DEFAULT))
+        min_seconds = str(form.get("min_seconds", str(MIN_SECONDS_DEFAULT)) or str(MIN_SECONDS_DEFAULT))
+        preferred_channels = str(form.get("preferred_channels", "") or "")
+        excluded_channels = str(form.get("excluded_channels", "") or "")
+        preferred_only = str(form.get("preferred_only", "") or "")
+        normalized_query = query.strip()
+
+        try:
+            if not normalized_query:
+                raise ValueError("Enter a search topic before previewing candidate videos.")
+            max_video_count = int(max_videos) if str(max_videos).isdigit() else MAX_VIDEOS_DEFAULT
+            min_video_seconds = int(min_seconds) if str(min_seconds).isdigit() else MIN_SECONDS_DEFAULT
+            max_video_count = max(1, min(15, max_video_count))
+            min_video_seconds = max(60, min(3600, min_video_seconds))
+            preview_count = min(20, max(8, max_video_count * 2))
+
+            videos = await app_state.youtube_search(
+                normalized_query,
+                max_videos=preview_count,
+                min_seconds=min_video_seconds,
+                order=order,
+                preferred_channels=app_state._parse_channel_filters(preferred_channels),
+                excluded_channels=app_state._parse_channel_filters(excluded_channels),
+                preferred_only=form_bool(preferred_only),
+            )
+            if not videos:
+                return render_search_preview_panel(
+                    error="No transcript-eligible videos matched the current search. Try loosening the filters, lowering the minimum duration, or changing the topic.",
+                    query=normalized_query,
+                )
+            return render_search_preview_panel(
+                results=[
+                    {
+                        "videoId": video.video_id,
+                        "title": video.title,
+                        "channelTitle": video.channel_title,
+                        "durationSec": video.duration_sec,
+                        "durationLabel": seconds_to_label(video.duration_sec),
+                        "url": video.url,
+                        "thumbnail": video.thumbnail,
+                    }
+                    for video in videos
+                ],
+                query=normalized_query,
+            )
+        except Exception as exc:
+            return render_search_preview_panel(error=str(exc), query=normalized_query)
+
+    @rt("/api/channel_settings", methods=["POST"])
+    async def api_channel_settings(request: Request, session, global_excluded_channels: str = ""):
+        user = current_user(session)
+        if not user:
+            return RedirectResponse("/login", status_code=303)
+        app_state = await get_user_app(user["id"])
+        saved = app_state.save_global_channel_blacklist(global_excluded_channels)
+        return render_channel_settings_panel(
+            "\n".join(saved),
+            notice="Saved your always-on channel blacklist.",
+        )
+
+    @rt("/api/reset_youtube", methods=["POST"])
+    async def api_reset_youtube(request: Request, session):
+        user = current_user(session)
+        if not user:
+            return RedirectResponse("/login", status_code=303)
+        app_state = await get_user_app(user["id"])
+        app_state.reset_youtube_index(preserve_filters=True)
+        if request.headers.get("hx-request", "").lower() == "true":
+            return home_page(app_state, user, notice="Cleared the current corpus and answer context. Saved channel settings were kept.")
+        return {"ok": True, **app_state.status_payload()}
 
     @rt("/api/seed_youtube", methods=["POST"])
     async def api_seed_youtube(
@@ -250,8 +342,13 @@ def create_app():
         min_video_seconds = max(60, min(3600, min_video_seconds))
 
         is_htmx = request.headers.get("hx-request", "").lower() == "true"
+        form = await request.form()
+        selected_video_ids = [str(video_id).strip() for video_id in form.getlist("selected_video_ids") if str(video_id).strip()]
+        preview_loaded = form_bool(form.get("preview_loaded", ""))
 
         try:
+            if preview_loaded and not selected_video_ids:
+                raise ValueError("Previewed candidates are loaded, but no videos are selected. Re-check at least one video before starting indexing.")
             job_id = app_state.start_youtube_index_job(
                 query,
                 max_videos=max_video_count,
@@ -260,6 +357,7 @@ def create_app():
                 preferred_channels_raw=preferred_channels,
                 excluded_channels_raw=excluded_channels,
                 preferred_only=form_bool(preferred_only),
+                selected_video_ids=selected_video_ids,
             )
         except ValueError as exc:
             if is_htmx:
