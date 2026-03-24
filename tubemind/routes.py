@@ -13,6 +13,7 @@ from fasthtml.common import (
     Script,
     StreamingResponse,
     fast_app,
+    to_xml,
 )
 
 from tubemind.auth import current_user, google_exchange_code, google_userinfo, logout_user, users_table
@@ -32,7 +33,14 @@ from tubemind.ui import home_page, render_answer_panel, render_dashboard_fragmen
 def sse_message(fragment, *, event: str) -> str:
     """Wrap a rendered HTML fragment in a server-sent event envelope."""
 
-    return f"event: {event}\ndata: {str(fragment)}\n\n"
+    payload = to_xml(fragment).replace("\n", "\ndata: ")
+    return f"event: {event}\ndata: {payload}\n\n"
+
+
+def form_bool(value: str) -> bool:
+    """Normalize checkbox-style form values into booleans."""
+
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def create_app():
@@ -166,7 +174,17 @@ def create_app():
         )
 
     @rt("/api/search_youtube")
-    async def api_search_youtube(request: Request, session, q: str = "", order: str = "relevance", minSeconds: str = "240", maxResults: str = "12"):
+    async def api_search_youtube(
+        request: Request,
+        session,
+        q: str = "",
+        order: str = "relevance",
+        minSeconds: str = "240",
+        maxResults: str = "12",
+        preferredChannels: str = "",
+        excludedChannels: str = "",
+        preferredOnly: str = "",
+    ):
         user = current_user(session)
         if not user:
             return {"error": "not authenticated", "query": q, "results": []}
@@ -175,11 +193,24 @@ def create_app():
             min_seconds = int(minSeconds) if str(minSeconds).isdigit() else 240
             max_results = int(maxResults) if str(maxResults).isdigit() else 12
             max_results = max(1, min(25, max_results))
-            videos = await app_state.youtube_search(q.strip(), max_videos=max_results, min_seconds=min_seconds, order=order)
+            videos = await app_state.youtube_search(
+                q.strip(),
+                max_videos=max_results,
+                min_seconds=min_seconds,
+                order=order,
+                preferred_channels=app_state._parse_channel_filters(preferredChannels),
+                excluded_channels=app_state._parse_channel_filters(excludedChannels),
+                preferred_only=form_bool(preferredOnly),
+            )
             return {
                 "query": q,
                 "order": order,
                 "minSeconds": min_seconds,
+                "filters": {
+                    "preferredChannels": preferredChannels,
+                    "excludedChannels": excludedChannels,
+                    "preferredOnly": form_bool(preferredOnly),
+                },
                 "results": [
                     {
                         "videoId": video.video_id,
@@ -198,7 +229,17 @@ def create_app():
             return {"error": str(exc), "query": q, "results": []}
 
     @rt("/api/seed_youtube", methods=["POST"])
-    async def api_seed_youtube(request: Request, session, query: str = "", order: str = "relevance", max_videos: str = "8", min_seconds: str = "240"):
+    async def api_seed_youtube(
+        request: Request,
+        session,
+        query: str = "",
+        order: str = "relevance",
+        max_videos: str = "8",
+        min_seconds: str = "240",
+        preferred_channels: str = "",
+        excluded_channels: str = "",
+        preferred_only: str = "",
+    ):
         user = current_user(session)
         if not user:
             return RedirectResponse("/login", status_code=303)
@@ -211,7 +252,15 @@ def create_app():
         is_htmx = request.headers.get("hx-request", "").lower() == "true"
 
         try:
-            job_id = app_state.start_youtube_index_job(query, max_videos=max_video_count, min_seconds=min_video_seconds, order=order)
+            job_id = app_state.start_youtube_index_job(
+                query,
+                max_videos=max_video_count,
+                min_seconds=min_video_seconds,
+                order=order,
+                preferred_channels_raw=preferred_channels,
+                excluded_channels_raw=excluded_channels,
+                preferred_only=form_bool(preferred_only),
+            )
         except ValueError as exc:
             if is_htmx:
                 return render_dashboard_fragment(app_state.status_payload(), notice=str(exc))

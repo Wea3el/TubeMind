@@ -20,6 +20,12 @@ def truncate_text(text: str, limit: int = 180) -> str:
     return text[: limit - 1].rstrip() + "..."
 
 
+def format_filter_text(values: list[str]) -> str:
+    """Render stored channel filters back into textarea-friendly text."""
+
+    return "\n".join(values)
+
+
 def friendly_job_stage(stage: str) -> str:
     """Translate internal job stage ids into dashboard labels."""
 
@@ -88,10 +94,14 @@ def render_dashboard_fragment(status: Dict[str, Any], notice: str = "") -> Any:
 
     badge_text, badge_tone = status_badge(status)
     youtube = status["youtube"]
+    filters = youtube.get("filters", {}) or {}
     job = status["job"]
     pct = progress_percent(job["progress"], job["total"])
     indexed_titles = youtube["titles"]
     recommendations = youtube.get("recommendations", []) or []
+    preferred_channels = list(filters.get("preferred_channels", []) or [])
+    excluded_channels = list(filters.get("excluded_channels", []) or [])
+    preferred_only = bool(filters.get("preferred_only", False))
     rate_limit_count = sum(
         1
         for item in status["skipped"]
@@ -149,6 +159,19 @@ def render_dashboard_fragment(status: Dict[str, Any], notice: str = "") -> Any:
         H2(friendly_job_stage(job["stage"]), cls="section-title"),
         P(job["message"] or "Search a topic, index a few transcript-enabled videos, then ask questions in plain English.", cls="section-copy"),
     ]
+
+    if preferred_channels or excluded_channels:
+        filter_chips = []
+        if preferred_channels:
+            label = "Only: " if preferred_only else "Prefer: "
+            filter_chips.append(Span(f"{label}{', '.join(preferred_channels[:3])}", cls="micro-pill"))
+            if len(preferred_channels) > 3:
+                filter_chips.append(Span(f"+{len(preferred_channels) - 3} more preferred", cls="micro-pill"))
+        if excluded_channels:
+            filter_chips.append(Span(f"Hide: {', '.join(excluded_channels[:3])}", cls="micro-pill"))
+            if len(excluded_channels) > 3:
+                filter_chips.append(Span(f"+{len(excluded_channels) - 3} more excluded", cls="micro-pill"))
+        summary_children.append(Div(*filter_chips, cls="status-row"))
 
     if notice:
         summary_children.append(Div(P(notice, cls="item-copy"), cls="skip-item"))
@@ -226,7 +249,7 @@ def render_dashboard(status: Dict[str, Any], notice: str = "") -> Any:
 
 
 def render_answer_panel(*, retrieval: Optional[Dict[str, Any]] = None, error: str = "", indexed: bool = False) -> Any:
-    """Render retrieved transcript chunks, with video embeds aligned to chunk start times.
+    """Render a synthesized answer plus supporting transcript chunks.
 
     The transcript text shown here is the clean text indexed into LightRAG, not the
     timestamp-decorated source transcript. Timing is reconstructed separately from a
@@ -241,7 +264,8 @@ def render_answer_panel(*, retrieval: Optional[Dict[str, Any]] = None, error: st
             id="answer-panel",
             cls="answer-shell error",
         )
-    if retrieval and retrieval.get("chunks"):
+    if retrieval and (retrieval.get("answer") or retrieval.get("chunks")):
+        answer_text = str(retrieval.get("answer") or "").strip()
         chunk_cards = [
             Div(
                 Div(
@@ -260,16 +284,40 @@ def render_answer_panel(*, retrieval: Optional[Dict[str, Any]] = None, error: st
                     if chunk.get("embed_url")
                     else ""
                 ),
-                Pre(chunk.get("content", ""), cls="answer-pre"),
+                Pre(chunk.get("content", ""), cls="answer-pre chunk-copy"),
                 cls="panel tight",
             )
             for idx, chunk in enumerate(retrieval["chunks"], start=1)
         ]
+        answer_block = (
+            Div(
+                Div(
+                    H3("Answer", cls="section-title"),
+                    P("Synthesized from the currently indexed YouTube transcript corpus.", cls="section-copy"),
+                    cls="answer-summary-head",
+                ),
+                Pre(answer_text, cls="answer-pre answer-summary-copy"),
+                cls="answer-summary",
+            )
+            if answer_text and answer_text.lower() not in {"none", "null"}
+            else Div(
+                H3("Answer", cls="section-title"),
+                P("TubeMind found supporting transcript evidence, but it could not synthesize a final answer for this question yet.", cls="section-copy"),
+                cls="answer-summary answer-summary-empty",
+            )
+        )
         return Div(
-            H3("Retrieved Transcript Chunks", cls="section-title"),
-            P("Directly retrieved from the indexed YouTube transcript corpus. No summary was generated.", cls="section-copy"),
-            P(f"Question: {retrieval.get('question', '')} | Mode: {str(retrieval.get('mode', DEFAULT_QUERY_MODE)).upper()}", cls="small"),
-            Div(*chunk_cards, cls="list-stack"),
+            answer_block,
+            Div(
+                H3("Supporting Transcript Chunks", cls="section-title"),
+                P("These passages were retrieved from the indexed YouTube transcript corpus and can be used to verify the answer.", cls="section-copy"),
+                P(f"Question: {retrieval.get('question', '')} | Mode: {str(retrieval.get('mode', DEFAULT_QUERY_MODE)).upper()}", cls="small"),
+                Div(*chunk_cards, cls="list-stack") if chunk_cards else Div(
+                    P("No transcript chunk previews were returned for this answer.", cls="item-copy"),
+                    cls="empty-state",
+                ),
+                cls="answer-evidence",
+            ),
             id="answer-panel",
             cls="answer-shell",
         )
@@ -322,6 +370,10 @@ def home_page(app_state: TubeMindApp, user: Any) -> Any:
     """Render the primary authenticated TubeMind workspace."""
 
     status = app_state.status_payload()
+    filters = status["youtube"].get("filters", {}) or {}
+    preferred_channels_text = format_filter_text(list(filters.get("preferred_channels", []) or []))
+    excluded_channels_text = format_filter_text(list(filters.get("excluded_channels", []) or []))
+    preferred_only = bool(filters.get("preferred_only", False))
     return Div(
         Div(render_user_badge(user), cls="page-header"),
         Div(
@@ -351,11 +403,35 @@ def home_page(app_state: TubeMindApp, user: Any) -> Any:
                 P("Pick a topic, choose how YouTube should sort results, and set how many videos TubeMind should try to ingest.", cls="section-copy"),
                 Form(
                     Div(
-                        Div(Label("Search Topic", cls="field-label"), Input(id="query-input", type="text", name="query", placeholder="Example: machine learning for beginners"), P("Use a phrase close to what a real person would search on YouTube.", cls="field-help"), cls="field"),
+                        Div(Label("Search Topic", cls="field-label"), Input(id="query-input", type="text", name="query", value=status["youtube"].get("seed_query", ""), placeholder="Example: machine learning for beginners"), P("Use a phrase close to what a real person would search on YouTube.", cls="field-help"), cls="field"),
                         Div(Label("Sort Results By", cls="field-label"), Select(*[Option(label, value=value, selected=(value == "relevance")) for value, label in SEARCH_ORDER_LABELS.items()], name="order"), P("Best Match is safest. Newest First is useful for recent topics.", cls="field-help"), cls="field"),
                         Div(Label("How Many Videos", cls="field-label"), Input(type="number", name="max_videos", value="8", min="1", max="15"), P("TubeMind will stop once it has enough successful transcript matches.", cls="field-help"), cls="field"),
                         Div(Label("Minimum Video Length (seconds)", cls="field-label"), Input(type="number", name="min_seconds", value="240", min="60", max="3600"), P("Higher values usually reduce short, low-signal clips.", cls="field-help"), cls="field"),
                         cls="field-grid",
+                    ),
+                    Div(
+                        Div(
+                            Label("Preferred Channels", cls="field-label"),
+                            Textarea(preferred_channels_text, name="preferred_channels", placeholder="One channel per line, for example:\nIBM Technology\nFireship", rows=4),
+                            P("TubeMind will prioritize these channels first. Use exact or close channel names.", cls="field-help"),
+                            cls="field",
+                        ),
+                        Div(
+                            Label("Excluded Channels", cls="field-label"),
+                            Textarea(excluded_channels_text, name="excluded_channels", placeholder="Hide creators you do not want in the corpus.", rows=4),
+                            P("Any matching channels will be removed before transcript fetching starts.", cls="field-help"),
+                            cls="field",
+                        ),
+                        cls="field-grid",
+                    ),
+                    Div(
+                        Label(
+                            Input(type="checkbox", name="preferred_only", value="true", checked=preferred_only),
+                            Span("Only include preferred channels", cls="field-label"),
+                            cls="toggle-row",
+                        ),
+                        P("Turn this on when you trust a fixed creator list. Leave it off to use those creators as a ranking preference instead.", cls="field-help"),
+                        cls="field",
                     ),
                     Div(Button("Start Indexing", type="submit", cls="primary-btn"), Span("TubeMind is building your corpus...", cls="htmx-indicator small"), P("You can keep watching the live dashboard while indexing runs.", cls="small"), cls="action-row"),
                     _hx_post="/api/seed_youtube",

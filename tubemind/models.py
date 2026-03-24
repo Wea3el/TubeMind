@@ -69,6 +69,9 @@ class CorpusState:
 
     youtube_indexed: bool = False
     youtube_seed_query: str = ""
+    youtube_preferred_channels: List[str] = field(default_factory=list)
+    youtube_excluded_channels: List[str] = field(default_factory=list)
+    youtube_preferred_only: bool = False
     youtube_video_ids: List[str] = field(default_factory=list)
     youtube_titles: List[str] = field(default_factory=list)
     youtube_urls: Dict[str, str] = field(default_factory=dict)
@@ -94,6 +97,9 @@ class CorpusState:
         obj = cls(
             youtube_indexed=bool(data.get("youtube_indexed", False)),
             youtube_seed_query=str(data.get("youtube_seed_query", "")),
+            youtube_preferred_channels=[str(x) for x in data.get("youtube_preferred_channels", [])],
+            youtube_excluded_channels=[str(x) for x in data.get("youtube_excluded_channels", [])],
+            youtube_preferred_only=bool(data.get("youtube_preferred_only", False)),
             youtube_video_ids=[str(x) for x in data.get("youtube_video_ids", [])],
             youtube_titles=[str(x) for x in data.get("youtube_titles", [])],
             youtube_urls={str(k): str(v) for k, v in (data.get("youtube_urls", {}) or {}).items()},
@@ -116,6 +122,9 @@ class CorpusState:
         payload = {
             "youtube_indexed": self.youtube_indexed,
             "youtube_seed_query": self.youtube_seed_query,
+            "youtube_preferred_channels": self.youtube_preferred_channels,
+            "youtube_excluded_channels": self.youtube_excluded_channels,
+            "youtube_preferred_only": self.youtube_preferred_only,
             "youtube_video_ids": self.youtube_video_ids,
             "youtube_titles": self.youtube_titles,
             "youtube_urls": self.youtube_urls,

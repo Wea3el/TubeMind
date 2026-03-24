@@ -190,6 +190,54 @@ class TubeMindApp:
 
         return merged[-30:]
 
+    def _parse_channel_filters(self, raw: str) -> List[str]:
+        """Split a comma/newline separated channel filter string into stable labels."""
+
+        seen: set[str] = set()
+        parsed: List[str] = []
+        for piece in re.split(r"[\n,]+", raw or ""):
+            label = re.sub(r"\s+", " ", piece).strip()
+            if not label:
+                continue
+            key = label.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            parsed.append(label)
+        return parsed
+
+    def _normalize_channel_label(self, label: str) -> str:
+        return re.sub(r"[^a-z0-9]+", " ", (label or "").casefold()).strip()
+
+    def _channel_matches_filters(self, channel_title: str, filters: List[str]) -> bool:
+        normalized_channel = self._normalize_channel_label(channel_title)
+        if not normalized_channel:
+            return False
+
+        for raw_filter in filters:
+            normalized_filter = self._normalize_channel_label(raw_filter)
+            if not normalized_filter:
+                continue
+            if normalized_filter in normalized_channel or normalized_channel in normalized_filter:
+                return True
+        return False
+
+    def _store_channel_filters(self, preferred_channels: List[str], excluded_channels: List[str], preferred_only: bool) -> None:
+        self.state.youtube_preferred_channels = preferred_channels
+        self.state.youtube_excluded_channels = excluded_channels
+        self.state.youtube_preferred_only = preferred_only
+
+    def _doc_item_key(self, doc_id: str, item: Dict[str, str]) -> str:
+        """Build a stable per-video key for deduplicating doc-status records."""
+
+        return str(item.get("videoId") or item.get("url") or item.get("title") or doc_id)
+
+    def _is_already_processed_duplicate(self, status_doc: Any) -> bool:
+        """Return True when LightRAG marks a reinserted processed document as failed."""
+
+        error_msg = str(getattr(status_doc, "error_msg", "") or "").lower()
+        return "content already exists." in error_msg and "status: processed" in error_msg
+
     def _classify_doc_status_docs(
         self,
         docs: Dict[str, Any],
@@ -197,8 +245,8 @@ class TubeMindApp:
     ) -> tuple[List[Dict[str, str]], List[Dict[str, str]]]:
         from lightrag.base import DocStatus
 
-        successful: List[Dict[str, str]] = []
-        failed: List[Dict[str, str]] = []
+        successful_map: Dict[str, Dict[str, str]] = {}
+        failed_map: Dict[str, Dict[str, str]] = {}
         video_lookup = video_lookup or {}
         video_lookup_by_url = {video.url: video for video in video_lookup.values()}
         order = {video_id: idx for idx, video_id in enumerate(video_lookup.keys())}
@@ -227,17 +275,24 @@ class TubeMindApp:
                 "url": url,
                 "thumbnail": thumbnail,
             }
+            item_key = self._doc_item_key(doc_id, item)
 
             status = getattr(status_doc, "status", None)
-            if status == DocStatus.PROCESSED:
-                successful.append(item)
+            if status == DocStatus.PROCESSED or self._is_already_processed_duplicate(status_doc):
+                failed_map.pop(item_key, None)
+                successful_map.setdefault(item_key, item)
             elif status == DocStatus.FAILED:
-                failed.append(
-                    {
-                        **item,
-                        "reason": f"Indexing failed: {str(getattr(status_doc, 'error_msg', '') or 'unknown error')}",
-                    }
-                )
+                if item_key not in successful_map:
+                    failed_map.setdefault(
+                        item_key,
+                        {
+                            **item,
+                            "reason": f"Indexing failed: {str(getattr(status_doc, 'error_msg', '') or 'unknown error')}",
+                        },
+                    )
+
+        successful = list(successful_map.values())
+        failed = list(failed_map.values())
 
         if order:
             successful.sort(key=lambda item: order.get(item.get("videoId", ""), len(order)))
@@ -324,12 +379,18 @@ class TubeMindApp:
 
             self._publish_dashboard_state()
 
-    def reset_youtube_index(self) -> None:
+    def reset_youtube_index(self, *, preserve_filters: bool = True) -> None:
         """Clear the current corpus state before a new indexing run starts."""
 
         with self.lock:
+            preferred_channels = list(self.state.youtube_preferred_channels) if preserve_filters else []
+            excluded_channels = list(self.state.youtube_excluded_channels) if preserve_filters else []
+            preferred_only = self.state.youtube_preferred_only if preserve_filters else False
             self.state.youtube_indexed = False
             self.state.youtube_seed_query = ""
+            self.state.youtube_preferred_channels = preferred_channels
+            self.state.youtube_excluded_channels = excluded_channels
+            self.state.youtube_preferred_only = preferred_only
             self.state.youtube_video_ids = []
             self.state.youtube_titles = []
             self.state.youtube_urls = {}
@@ -353,7 +414,17 @@ class TubeMindApp:
         self.state.job_message = msg
         self._publish_dashboard_state()
 
-    async def youtube_search(self, query: str, *, max_videos: int, min_seconds: int, order: str) -> List[YouTubeVideo]:
+    async def youtube_search(
+        self,
+        query: str,
+        *,
+        max_videos: int,
+        min_seconds: int,
+        order: str,
+        preferred_channels: Optional[List[str]] = None,
+        excluded_channels: Optional[List[str]] = None,
+        preferred_only: bool = False,
+    ) -> List[YouTubeVideo]:
         """Search YouTube and normalize the returned videos for TubeMind use."""
 
         key = os.environ["YOUTUBE_API_KEY"]
@@ -420,6 +491,28 @@ class TubeMindApp:
                     url=yt_watch_url(video_id),
                 )
             )
+
+        preferred_channels = preferred_channels or []
+        excluded_channels = excluded_channels or []
+
+        if excluded_channels:
+            videos = [
+                video
+                for video in videos
+                if not self._channel_matches_filters(video.channel_title, excluded_channels)
+            ]
+
+        if preferred_channels:
+            matching = [
+                video
+                for video in videos
+                if self._channel_matches_filters(video.channel_title, preferred_channels)
+            ]
+            if preferred_only:
+                videos = matching
+            else:
+                matching_ids = {video.video_id for video in matching}
+                videos = matching + [video for video in videos if video.video_id not in matching_ids]
 
         return videos[:max_videos]
 
@@ -648,6 +741,16 @@ class TubeMindApp:
 
         return sources
 
+    class _QuietYTDLPLogger:
+        def debug(self, msg: str) -> None:
+            return None
+
+        def warning(self, msg: str) -> None:
+            return None
+
+        def error(self, msg: str) -> None:
+            return None
+
     def _extract_transcriptapi_error(self, payload: Any) -> str:
         detail = payload.get("detail") if isinstance(payload, dict) else None
         if isinstance(detail, dict):
@@ -778,6 +881,7 @@ class TubeMindApp:
                         "skip_download": True,
                         "quiet": True,
                         "no_warnings": True,
+                        "logger": self._QuietYTDLPLogger(),
                         "writesubtitles": True,
                         "writeautomaticsub": True,
                         "subtitleslangs": ["en", "en.*"],
@@ -811,9 +915,20 @@ class TubeMindApp:
         return None, last_err
 
     def _fetch_transcript(self, video: YouTubeVideo) -> tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
-        """Fetch transcript segments using the primary API and configured fallbacks."""
+        """Fetch transcript segments, preferring TranscriptAPI when configured."""
 
         last_err: Optional[str] = None
+        transcript_api_err: Optional[str] = None
+        yt_dlp_err: Optional[str] = None
+        prefer_transcriptapi = bool(self._transcript_api_key())
+
+        if prefer_transcriptapi:
+            transcript_api_segments, transcript_api_err = self._fetch_transcript_with_transcriptapi(video)
+            if transcript_api_segments:
+                return transcript_api_segments, None
+            if transcript_api_err:
+                last_err = transcript_api_err
+
         request_kwargs = self._transcript_request_kwargs()
 
         for attempt in range(1, TRANSCRIPT_RETRY_ATTEMPTS + 1):
@@ -835,29 +950,47 @@ class TubeMindApp:
             if attempt < TRANSCRIPT_RETRY_ATTEMPTS:
                 time.sleep(TRANSCRIPT_RETRY_BASE_DELAY * (2 ** (attempt - 1)))
 
-        transcript_api_segments, transcript_api_err = self._fetch_transcript_with_transcriptapi(video)
-        if transcript_api_segments:
-            return transcript_api_segments, None
+        if not prefer_transcriptapi:
+            transcript_api_segments, transcript_api_err = self._fetch_transcript_with_transcriptapi(video)
+            if transcript_api_segments:
+                return transcript_api_segments, None
 
         yt_dlp_segments, yt_dlp_err = self._fetch_transcript_with_ytdlp(video)
         if yt_dlp_segments:
             return yt_dlp_segments, None
 
-        fallback_errors = [err for err in (transcript_api_err, yt_dlp_err) if err]
-        if fallback_errors:
-            last_err = "\n".join([last_err or "transcript fetch failed", *fallback_errors])
+        error_chain: List[str] = []
+        for err in (last_err, transcript_api_err, yt_dlp_err):
+            if err and err not in error_chain:
+                error_chain.append(err)
+        if error_chain:
+            last_err = "\n".join(error_chain)
 
         return None, last_err or "unknown transcript error"
 
-    def start_youtube_index_job(self, query: str, *, max_videos: int, min_seconds: int, order: str) -> str:
+    def start_youtube_index_job(
+        self,
+        query: str,
+        *,
+        max_videos: int,
+        min_seconds: int,
+        order: str,
+        preferred_channels_raw: str = "",
+        excluded_channels_raw: str = "",
+        preferred_only: bool = False,
+    ) -> str:
         """Start the background indexing workflow for a new YouTube corpus topic."""
 
         normalized = query.strip()
         if not normalized:
             raise ValueError("Enter a YouTube search phrase to index.")
 
+        preferred_channels = self._parse_channel_filters(preferred_channels_raw)
+        excluded_channels = self._parse_channel_filters(excluded_channels_raw)
+
         with self.lock:
-            self.reset_youtube_index()
+            self._store_channel_filters(preferred_channels, excluded_channels, preferred_only)
+            self.reset_youtube_index(preserve_filters=True)
 
             job_id = f"job_{now_ms()}"
             self.state.job_id = job_id
@@ -881,12 +1014,37 @@ class TubeMindApp:
 
     async def _run_youtube_index_job(self, job_id: str, query: str, max_videos: int, min_seconds: int, order: str) -> None:
         candidate_pool = self._transcript_candidate_pool(max_videos)
-        videos = await self.youtube_search(query, max_videos=candidate_pool, min_seconds=min_seconds, order=order)
+        with self.lock:
+            preferred_channels = list(self.state.youtube_preferred_channels)
+            excluded_channels = list(self.state.youtube_excluded_channels)
+            preferred_only = self.state.youtube_preferred_only
+
+        videos = await self.youtube_search(
+            query,
+            max_videos=candidate_pool,
+            min_seconds=min_seconds,
+            order=order,
+            preferred_channels=preferred_channels,
+            excluded_channels=excluded_channels,
+            preferred_only=preferred_only,
+        )
 
         with self.lock:
             if self.state.job_id != job_id:
                 return
             self._save_recommendations(videos)
+            if not videos:
+                filter_hint = ""
+                if preferred_channels or excluded_channels:
+                    filter_hint = " Try loosening the channel filters or search a broader topic."
+                self._set_job(
+                    active=False,
+                    stage="error",
+                    progress=0,
+                    total=0,
+                    msg=f"No transcript-eligible videos matched the current search.{filter_hint}",
+                )
+                return
             self._set_job(
                 active=True,
                 stage="transcripts",
@@ -899,7 +1057,7 @@ class TubeMindApp:
         ids: List[str] = []
         file_paths: List[str] = []
         indexed_videos: List[YouTubeVideo] = []
-        consecutive_rate_limits = 0
+        rate_limited_skips = 0
 
         for index, video in enumerate(videos, start=1):
             if len(documents) >= max_videos:
@@ -919,9 +1077,7 @@ class TubeMindApp:
             segments, err = self._fetch_transcript(video)
             if not segments:
                 if err and self._looks_rate_limited(err):
-                    consecutive_rate_limits += 1
-                else:
-                    consecutive_rate_limits = 0
+                    rate_limited_skips += 1
                 with self.lock:
                     self.state.youtube_skipped.append(
                         {
@@ -933,20 +1089,9 @@ class TubeMindApp:
                         }
                     )
                     self._publish_dashboard_state()
-                if consecutive_rate_limits >= 2 and not documents:
-                    with self.lock:
-                        self._set_job(
-                            active=False,
-                            stage="done",
-                            progress=index,
-                            total=len(videos),
-                            msg="YouTube rate-limited transcript access. Recommendations are still available on the right.",
-                        )
-                    break
                 time.sleep(self._transcript_request_delay())
                 continue
 
-            consecutive_rate_limits = 0
             transcript = self._save_transcript_artifact(video, segments)
             if not transcript.strip():
                 with self.lock:
@@ -1008,25 +1153,40 @@ class TubeMindApp:
             if indexed_count == 0:
                 if processing_failures:
                     done_msg = "Transcripts were fetched, but building the corpus failed. Check skipped videos for the exact OpenAI or indexing error."
-                elif any(self._looks_rate_limited(str(item.get("reason", ""))) for item in self.state.youtube_skipped):
-                    done_msg += " YouTube rate-limited transcript access for this IP. Try fewer videos or configure cookies in .env."
+                elif rate_limited_skips or any(self._looks_rate_limited(str(item.get("reason", ""))) for item in self.state.youtube_skipped):
+                    done_msg += " YouTube rate-limited transcript access for this IP. TubeMind kept trying the candidate pool, but none succeeded. Try fewer videos, add TranscriptAPI/cookies, or widen the topic."
+                elif preferred_channels or excluded_channels:
+                    done_msg += " The active channel filters may have removed the videos most likely to expose transcripts."
                 else:
                     done_msg += " (Most likely transcripts were disabled. Check skipped list.)"
             final_stage = "done" if indexed_count > 0 else "error"
             self._set_job(active=False, stage=final_stage, progress=indexed_count, total=indexed_count, msg=done_msg)
 
     async def query_youtube(self, question: str, mode: str = DEFAULT_QUERY_MODE) -> Dict[str, Any]:
-        """Return retrieved transcript chunks instead of a synthesized answer."""
+        """Return a synthesized answer plus the supporting transcript chunks."""
 
         question_text = question.strip()
         if not question_text:
             raise ValueError("Enter a question.")
         if not self.state.youtube_indexed:
-            raise ValueError("Index YouTube first. If the previous run failed, start indexing again to finalize the corpus.")
+            if self.state.job_active:
+                raise ValueError("Indexing is still running. Wait until the dashboard says the corpus is ready, then ask again.")
+            if self.state.youtube_seed_query:
+                raise ValueError("No videos were successfully indexed for the current topic yet. Check skipped videos, relax the channel filters if needed, then start indexing again.")
+            raise ValueError("Index YouTube first. Start with a topic, let TubeMind finish indexing, then ask your question.")
         if mode not in QUERY_MODES:
             mode = DEFAULT_QUERY_MODE
 
         from lightrag import QueryParam
+
+        answer = str(
+            await self._run_coro_on_rag_loop(
+                self.rag.aquery(
+                    question_text,
+                    param=QueryParam(mode=mode, response_type="Multiple Paragraphs"),
+                )
+            )
+        ).strip()
 
         result = await self._run_coro_on_rag_loop(
             self.rag.aquery_data(
@@ -1036,7 +1196,7 @@ class TubeMindApp:
         )
         chunks = list((result or {}).get("data", {}).get("chunks", []) or [])
 
-        if not chunks:
+        if not chunks and ((not answer) or answer.lower() in {"none", "null"}):
             raise RuntimeError("No transcript chunks matched that question. Try a simpler question or re-index different videos.")
 
         title_by_url = {url: title for title, url in self.state.youtube_urls.items()}
@@ -1063,6 +1223,7 @@ class TubeMindApp:
         return {
             "question": question_text,
             "mode": mode,
+            "answer": answer,
             "chunks": cleaned_chunks,
         }
 
@@ -1076,6 +1237,11 @@ class TubeMindApp:
             "youtube": {
                 "indexed": state.youtube_indexed,
                 "seed_query": state.youtube_seed_query,
+                "filters": {
+                    "preferred_channels": state.youtube_preferred_channels,
+                    "excluded_channels": state.youtube_excluded_channels,
+                    "preferred_only": state.youtube_preferred_only,
+                },
                 "count": len(indexed_titles),
                 "titles": indexed_titles,
                 "urls": indexed_urls,
