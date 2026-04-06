@@ -391,18 +391,54 @@ class TubeMindApp:
         return queries[:2]
 
     async def youtube_search(self, query: str, *, max_videos: int, min_seconds: int, order: str) -> list[YouTubeVideo]:
-        """Search YouTube and normalize the result list for indexing."""
+        """Search YouTube and normalize the result list for indexing.
+
+        Hosted deployments are much more reliable when TubeMind targets videos
+        that already advertise captions and allow embedding, because transcript
+        fallbacks like yt-dlp are more likely to hit bot checks from cloud IPs.
+        """
 
         key = os.environ["YOUTUBE_API_KEY"]
-        params = {"part": "snippet", "type": "video", "maxResults": str(min(max_videos, 25)), "q": query, "order": order, "key": key}
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(YOUTUBE_SEARCH_URL, params=params)
-            data = response.json()
-            if response.status_code != 200:
-                raise RuntimeError(f"YouTube search failed: {data}")
+        max_results = str(min(max_videos, 25))
+        search_variants = [
+            {
+                "part": "snippet",
+                "type": "video",
+                "maxResults": max_results,
+                "q": query,
+                "order": order,
+                "videoCaption": "closedCaption",
+                "videoEmbeddable": "true",
+                "key": key,
+            },
+            {
+                "part": "snippet",
+                "type": "video",
+                "maxResults": max_results,
+                "q": query,
+                "order": order,
+                "videoEmbeddable": "true",
+                "key": key,
+            },
+        ]
 
-        video_ids = [str(item.get("id", {}).get("videoId") or "").strip() for item in data.get("items", [])]
-        video_ids = [video_id for video_id in video_ids if video_id]
+        video_ids: list[str] = []
+        seen_video_ids: set[str] = set()
+        async with httpx.AsyncClient(timeout=30) as client:
+            for params in search_variants:
+                response = await client.get(YOUTUBE_SEARCH_URL, params=params)
+                data = response.json()
+                if response.status_code != 200:
+                    raise RuntimeError(f"YouTube search failed: {data}")
+                for item in data.get("items", []):
+                    video_id = str(item.get("id", {}).get("videoId") or "").strip()
+                    if not video_id or video_id in seen_video_ids:
+                        continue
+                    seen_video_ids.add(video_id)
+                    video_ids.append(video_id)
+                if len(video_ids) >= min(max_videos, 12):
+                    break
+
         if not video_ids:
             return []
 
