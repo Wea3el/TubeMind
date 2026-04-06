@@ -891,10 +891,10 @@ class TubeMindApp:
         return str(item.get("videoId") or item.get("url") or item.get("title") or doc_id)
 
     def _is_already_processed_duplicate(self, status_doc: Any) -> bool:
-        """Detect LightRAG duplicate-insert errors for already processed docs."""
+        """Detect duplicate-insert errors that mean the transcript already exists."""
 
         error_msg = str(getattr(status_doc, "error_msg", "") or "").lower()
-        return "content already exists." in error_msg and "status: processed" in error_msg
+        return "content already exists." in error_msg
 
     def _classify_doc_status_docs(self, docs: dict[str, Any], video_lookup: Optional[dict[str, YouTubeVideo]] = None) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Split LightRAG status rows into successful and failed documents."""
