@@ -20,6 +20,8 @@ from tubemind.config import CSS_FILE, DEMO_AUTH_ENABLED, GOOGLE_AUTH_ENABLED, HT
 from tubemind.services import get_user_app, shutdown_all_user_apps
 from tubemind.ui import render_login_page, render_note_detail_page, render_sidebar, render_workspace
 
+CSS_HREF = f"/static/tubemind.css?v={int(CSS_FILE.stat().st_mtime)}"
+
 THEME_BOOTSTRAP_SCRIPT = """
 (() => {
     const storageKey = "tubemind-theme";
@@ -105,7 +107,7 @@ def create_app():
                 rel="stylesheet",
                 href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap",
             ),
-            Link(rel="stylesheet", href="/static/tubemind.css"),
+            Link(rel="stylesheet", href=CSS_HREF),
         ),
         on_shutdown=[shutdown_all_user_apps],
     )
