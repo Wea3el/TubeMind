@@ -218,4 +218,6 @@ __marimo__/
 AGENTS.md
 .axon
 .local
+.playwright-cli/
+youtube-cookies.txt
 .sesskey

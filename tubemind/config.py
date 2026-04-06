@@ -9,7 +9,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
-APP_ROOT = ROOT / ".local"
 STATIC_ROOT = ROOT / "static"
 CSS_FILE = STATIC_ROOT / "tubemind.css"
 
@@ -54,6 +53,45 @@ TRANSCRIPT_CANDIDATE_PADDING = 2
 SSE_RETRY_MS = 1000
 
 
+def _clean_env_value(raw: str) -> str:
+    """Trim whitespace and one layer of matching surrounding quotes."""
+
+    value = str(raw or "").strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1].strip()
+    return value
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    """Parse one optional boolean environment variable."""
+
+    raw = _clean_env_value(os.environ.get(name, "")).lower()
+    if not raw:
+        return default
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _env_path(name: str, default: Path) -> Path:
+    """Resolve one optional filesystem path environment variable."""
+
+    raw = _clean_env_value(os.environ.get(name, ""))
+    if not raw:
+        return default
+    return Path(raw).expanduser()
+
+
+def _env_int(name: str, default: int) -> int:
+    """Parse one optional integer environment variable safely."""
+
+    raw = _clean_env_value(os.environ.get(name, ""))
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
 def load_environment() -> None:
     """Load required environment variables before the app starts serving requests."""
 
@@ -68,8 +106,16 @@ def load_environment() -> None:
 
 load_environment()
 
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-SESSION_SECRET = os.environ.get("SESSION_SECRET") or secrets.token_hex(32)
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:5001")
+APP_ROOT = _env_path("TUBEMIND_DATA_DIR", ROOT / ".local")
+GOOGLE_CLIENT_ID = _clean_env_value(os.environ.get("GOOGLE_CLIENT_ID", ""))
+GOOGLE_CLIENT_SECRET = _clean_env_value(os.environ.get("GOOGLE_CLIENT_SECRET", ""))
+GOOGLE_AUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+DEMO_AUTH_ENABLED = _env_flag("DEMO_AUTH_ENABLED", default=False)
+DEMO_USER_ID = _clean_env_value(os.environ.get("DEMO_USER_ID", "demo-user"))
+DEMO_USER_NAME = _clean_env_value(os.environ.get("DEMO_USER_NAME", "Coursework Demo"))
+DEMO_USER_EMAIL = _clean_env_value(os.environ.get("DEMO_USER_EMAIL", "demo@tubemind.local"))
+DEMO_USER_PICTURE = _clean_env_value(os.environ.get("DEMO_USER_PICTURE", ""))
+SESSION_SECRET = _clean_env_value(os.environ.get("SESSION_SECRET", "")) or secrets.token_hex(32)
+PORT = _env_int("PORT", 5001)
+BASE_URL = _clean_env_value(os.environ.get("BASE_URL", f"http://localhost:{PORT}"))
 REDIRECT_URI = f"{BASE_URL}/auth/callback"

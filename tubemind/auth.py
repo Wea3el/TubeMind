@@ -16,7 +16,17 @@ from urllib.request import Request as UrlRequest, urlopen
 
 from fasthtml.common import RedirectResponse, database
 
-from tubemind.config import APP_ROOT, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI
+from tubemind.config import (
+    APP_ROOT,
+    DEMO_AUTH_ENABLED,
+    DEMO_USER_EMAIL,
+    DEMO_USER_ID,
+    DEMO_USER_NAME,
+    DEMO_USER_PICTURE,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    REDIRECT_URI,
+)
 from tubemind.models import now_ms
 
 APP_ROOT.mkdir(parents=True, exist_ok=True)
@@ -192,6 +202,17 @@ def current_user(session) -> Any:
         return None
 
 
+def demo_user_profile() -> dict[str, Any]:
+    """Return the synthetic coursework user profile used in demo mode."""
+
+    return {
+        "id": DEMO_USER_ID,
+        "email": DEMO_USER_EMAIL,
+        "name": DEMO_USER_NAME,
+        "picture": DEMO_USER_PICTURE,
+    }
+
+
 def begin_oauth_session(session) -> str:
     """Create and store the CSRF state token for a new login attempt."""
 
@@ -232,6 +253,18 @@ def upsert_user_profile(profile: dict[str, Any]) -> None:
         },
         pk="id",
     )
+
+
+def ensure_demo_user_session(session) -> dict[str, Any] | None:
+    """Create or reuse the configured demo user for simplified deployments."""
+
+    if not DEMO_AUTH_ENABLED:
+        return None
+    profile = demo_user_profile()
+    upsert_user_profile(profile)
+    session["user_id"] = profile["id"]
+    session.pop("oauth_state", None)
+    return current_user(session) or {**profile, "active_board_id": None}
 
 
 def set_active_board(user_id: str, board_id: int | None) -> None:

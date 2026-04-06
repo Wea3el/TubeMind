@@ -8,7 +8,7 @@ from typing import Any, Optional
 from fasthtml.common import A, Button, Div, Form, H1, H2, H3, Iframe, Img, Input, Label, Option, P, Pre, Select, Span, Textarea, Title
 
 from tubemind.auth import ERROR_MESSAGES, begin_oauth_session, google_auth_url, list_note_chunks, list_note_queries
-from tubemind.config import DEFAULT_QUERY_MODE, QUERY_MODE_LABELS
+from tubemind.config import DEFAULT_QUERY_MODE, DEMO_AUTH_ENABLED, GOOGLE_AUTH_ENABLED, QUERY_MODE_LABELS
 from tubemind.models import BoardWorkspace
 
 
@@ -41,20 +41,76 @@ def render_user_badge(user: dict[str, Any]) -> Any:
     )
 
 
-def render_login_page(session, error: str = "") -> Any:
-    """Render the Google sign-in page for unauthenticated visitors."""
+def render_theme_toggle() -> Any:
+    """Render the persistent light/dark mode toggle."""
 
-    state = begin_oauth_session(session)
-    error_msg = ERROR_MESSAGES.get(error, "")
-    return Title("TubeMind - Sign in"), Div(
-        Div(
-            H2("TubeMind", cls="login-title"),
-            P("Sign in with Google to create topic-bound research boards from YouTube videos.", cls="login-copy"),
-            Div(error_msg, cls="login-error") if error_msg else "",
-            A("Sign in with Google", href=google_auth_url(state), role="button", cls="signin-btn"),
-            cls="login-card",
+    return Button(
+        Span("Theme", cls="theme-toggle-copy"),
+        Span(
+            Span("", cls="theme-toggle-knob"),
+            cls="theme-toggle-track",
+            **{"aria-hidden": "true"},
         ),
-        cls="login-shell",
+        Span("Light", cls="theme-toggle-state"),
+        cls="theme-toggle",
+        type="button",
+        **{
+            "data-theme-toggle": "",
+            "aria-label": "Switch to dark mode",
+            "aria-pressed": "false",
+            "title": "Switch to dark mode",
+        },
+    )
+
+
+def render_page_topbar(user: Optional[dict[str, Any]] = None) -> Any:
+    """Render the top-right controls shared across pages."""
+
+    actions = [render_theme_toggle()]
+    if user:
+        actions.append(render_user_badge(user))
+    return Div(
+        Div(*actions, cls="topbar-actions"),
+        cls="page-topbar",
+    )
+
+
+def render_login_page(session, error: str = "") -> Any:
+    """Render the configured sign-in options for unauthenticated visitors."""
+
+    error_msg = ERROR_MESSAGES.get(error, "")
+    actions: list[Any] = []
+
+    if GOOGLE_AUTH_ENABLED:
+        state = begin_oauth_session(session)
+        actions.append(A("Sign in with Google", href=google_auth_url(state), role="button", cls="signin-btn"))
+    if DEMO_AUTH_ENABLED:
+        actions.append(A("Enter Demo Workspace", href="/auth/demo", role="button", cls="signin-btn signin-btn-secondary"))
+
+    login_copy = "Ask a question, keep the evidence, and let each board stay anchored to one evolving topic."
+    if DEMO_AUTH_ENABLED and not GOOGLE_AUTH_ENABLED:
+        login_copy = "Demo mode is enabled for this deployment. Enter the workspace to explore the coursework build without Google OAuth."
+    elif DEMO_AUTH_ENABLED and GOOGLE_AUTH_ENABLED:
+        login_copy = "Use Google sign-in or enter the demo workspace for a simpler coursework deploy."
+
+    return Title("TubeMind - Sign in"), Div(
+        render_page_topbar(),
+        Div(
+            Div(
+                Span("Research boards for YouTube knowledge", cls="login-badge"),
+                H2("TubeMind", cls="login-title"),
+                P(login_copy, cls="login-copy"),
+                Div(error_msg, cls="login-error") if error_msg else "",
+                Div(*actions, cls="login-actions") if actions else P(
+                    "No login method is configured. Set DEMO_AUTH_ENABLED=true for a coursework deploy or configure Google OAuth.",
+                    cls="login-copy",
+                ),
+                P("Built for slower thinking, clearer summaries, and source-backed notes that still feel easy to scan.", cls="login-footnote"),
+                cls="login-card",
+            ),
+            cls="login-shell",
+        ),
+        cls="app-shell app-shell-login",
     )
 
 
@@ -189,7 +245,7 @@ def render_workspace(workspace: BoardWorkspace, user: dict[str, Any]) -> Any:
     notice_block = Div(workspace.notice, cls="notice-banner") if workspace.notice else ""
     warning_block = Div(workspace.warning, cls="warning-banner") if workspace.warning else ""
     return Div(
-        Div(render_user_badge(user), cls="page-topbar"),
+        render_page_topbar(user),
         Div(
             render_sidebar(workspace.boards, int(board.get("id", 0) or 0) if board else None),
             Div(
@@ -252,7 +308,7 @@ def render_note_detail_page(user: dict[str, Any], boards: list[dict[str, Any]], 
     ]
 
     return Div(
-        Div(render_user_badge(user), cls="page-topbar"),
+        render_page_topbar(user),
         Div(
             render_sidebar(boards, int(board.get("id", 0) or 0)),
             Div(

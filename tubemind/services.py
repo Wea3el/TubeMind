@@ -391,18 +391,54 @@ class TubeMindApp:
         return queries[:2]
 
     async def youtube_search(self, query: str, *, max_videos: int, min_seconds: int, order: str) -> list[YouTubeVideo]:
-        """Search YouTube and normalize the result list for indexing."""
+        """Search YouTube and normalize the result list for indexing.
+
+        Hosted deployments are much more reliable when TubeMind targets videos
+        that already advertise captions and allow embedding, because transcript
+        fallbacks like yt-dlp are more likely to hit bot checks from cloud IPs.
+        """
 
         key = os.environ["YOUTUBE_API_KEY"]
-        params = {"part": "snippet", "type": "video", "maxResults": str(min(max_videos, 25)), "q": query, "order": order, "key": key}
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(YOUTUBE_SEARCH_URL, params=params)
-            data = response.json()
-            if response.status_code != 200:
-                raise RuntimeError(f"YouTube search failed: {data}")
+        max_results = str(min(max_videos, 25))
+        search_variants = [
+            {
+                "part": "snippet",
+                "type": "video",
+                "maxResults": max_results,
+                "q": query,
+                "order": order,
+                "videoCaption": "closedCaption",
+                "videoEmbeddable": "true",
+                "key": key,
+            },
+            {
+                "part": "snippet",
+                "type": "video",
+                "maxResults": max_results,
+                "q": query,
+                "order": order,
+                "videoEmbeddable": "true",
+                "key": key,
+            },
+        ]
 
-        video_ids = [str(item.get("id", {}).get("videoId") or "").strip() for item in data.get("items", [])]
-        video_ids = [video_id for video_id in video_ids if video_id]
+        video_ids: list[str] = []
+        seen_video_ids: set[str] = set()
+        async with httpx.AsyncClient(timeout=30) as client:
+            for params in search_variants:
+                response = await client.get(YOUTUBE_SEARCH_URL, params=params)
+                data = response.json()
+                if response.status_code != 200:
+                    raise RuntimeError(f"YouTube search failed: {data}")
+                for item in data.get("items", []):
+                    video_id = str(item.get("id", {}).get("videoId") or "").strip()
+                    if not video_id or video_id in seen_video_ids:
+                        continue
+                    seen_video_ids.add(video_id)
+                    video_ids.append(video_id)
+                if len(video_ids) >= min(max_videos, 12):
+                    break
+
         if not video_ids:
             return []
 
@@ -544,13 +580,57 @@ class TubeMindApp:
     def _transcript_request_kwargs(self) -> dict[str, Any]:
         """Return optional cookie-file settings for transcript requests."""
 
-        cookies_file = str(os.environ.get("YOUTUBE_TRANSCRIPT_COOKIES_FILE", "")).strip()
+        cookies_file = str(os.environ.get("YOUTUBE_TRANSCRIPT_COOKIES_FILE", "")).strip().strip("'").strip('"')
         return {"cookies": cookies_file} if cookies_file else {}
 
     def _transcript_api_key(self) -> str:
         """Return the configured TranscriptAPI key when present."""
 
-        return str(os.environ.get("TRANSCRIPTAPI_API_KEY", "")).strip()
+        return str(os.environ.get("TRANSCRIPTAPI_API_KEY", "")).strip().strip("'").strip('"')
+
+    def _summarize_transcript_failures(self, failures: list[str]) -> str:
+        """Compress repeated transcript fetch failures into a readable warning."""
+
+        seen: set[str] = set()
+        unique_failures: list[str] = []
+        for failure in failures:
+            cleaned = str(failure or "").strip()
+            if not cleaned or cleaned in seen:
+                continue
+            seen.add(cleaned)
+            unique_failures.append(cleaned)
+
+        if not unique_failures:
+            return "TubeMind found videos, but transcript fetching failed before any evidence could be indexed."
+
+        preview = "\n\n".join(unique_failures[:3])
+        return (
+            "TubeMind found videos, but could not fetch any usable transcripts for them.\n\n"
+            f"{preview}\n\n"
+            "On hosted deployments this usually means TranscriptAPI auth is invalid, quota is exhausted, or the candidate videos do not have captions."
+        )
+
+    def _summarize_indexing_failures(self, failures: list[dict[str, str]]) -> str:
+        """Compress document indexing failures into a readable warning."""
+
+        previews: list[str] = []
+        seen: set[str] = set()
+        for failure in failures:
+            title = str(failure.get("title", "") or "Indexed transcript").strip()
+            reason = str(failure.get("reason", "") or "unknown indexing error").strip()
+            line = f"{title}: {reason}"
+            if line in seen:
+                continue
+            seen.add(line)
+            previews.append(line)
+
+        if not previews:
+            return "TubeMind fetched transcripts, but indexing them into the board failed before any evidence became available."
+
+        return (
+            "TubeMind fetched transcripts, but indexing them into the board failed before any evidence became available.\n\n"
+            f"{chr(10).join(previews[:3])}"
+        )
 
     def _is_transcript_rate_limited(self, exc: Exception) -> bool:
         """Detect transcript rate-limit conditions across providers."""
@@ -596,12 +676,16 @@ class TubeMindApp:
         if not api_key:
             return None, None
         headers = {"Authorization": f"Bearer {api_key}"}
-        params = {"platform": "youtube", "video_id": video.video_id}
+        params = {
+            "video_url": video.video_id,
+            "format": "json",
+            "include_timestamp": "true",
+        }
         last_err = "unknown TranscriptAPI error"
         retry_delay = 1.0
         with httpx.Client(timeout=30.0) as client:
             for _ in range(3):
-                response = client.get(f"{TRANSCRIPTAPI_BASE_URL}/transcripts", params=params, headers=headers)
+                response = client.get(f"{TRANSCRIPTAPI_BASE_URL}/youtube/transcript", params=params, headers=headers)
                 if response.status_code == 200:
                     payload = response.json()
                     cues = payload.get("transcript", []) if isinstance(payload, dict) else []
@@ -690,10 +774,10 @@ class TubeMindApp:
         """Return the ordered yt-dlp cookie strategies to try."""
 
         sources: list[tuple[str, dict[str, Any]]] = [("yt-dlp", {})]
-        cookie_file = str(os.environ.get("YOUTUBE_TRANSCRIPT_COOKIES_FILE", "")).strip()
+        cookie_file = str(os.environ.get("YOUTUBE_TRANSCRIPT_COOKIES_FILE", "")).strip().strip("'").strip('"')
         if cookie_file:
             sources.append(("yt-dlp + cookie file", {"cookiefile": cookie_file}))
-        browsers_raw = str(os.environ.get("YOUTUBE_COOKIES_BROWSER", "")).strip()
+        browsers_raw = str(os.environ.get("YOUTUBE_COOKIES_BROWSER", "")).strip().strip("'").strip('"')
         for browser in [value.strip().lower() for value in browsers_raw.split(",") if value.strip()]:
             sources.append((f"yt-dlp + {COOKIE_BROWSER_LABELS.get(browser, browser.title())} cookies", {"cookiesfrombrowser": (browser, None, None, None)}))
         return sources
@@ -807,10 +891,10 @@ class TubeMindApp:
         return str(item.get("videoId") or item.get("url") or item.get("title") or doc_id)
 
     def _is_already_processed_duplicate(self, status_doc: Any) -> bool:
-        """Detect LightRAG duplicate-insert errors for already processed docs."""
+        """Detect duplicate-insert errors that mean the transcript already exists."""
 
         error_msg = str(getattr(status_doc, "error_msg", "") or "").lower()
-        return "content already exists." in error_msg and "status: processed" in error_msg
+        return "content already exists." in error_msg
 
     def _classify_doc_status_docs(self, docs: dict[str, Any], video_lookup: Optional[dict[str, YouTubeVideo]] = None) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Split LightRAG status rows into successful and failed documents."""
@@ -859,6 +943,7 @@ class TubeMindApp:
         file_paths: list[str] = []
         indexed_videos: list[YouTubeVideo] = []
         origin_query_by_video_id: dict[str, str] = {}
+        transcript_failures: list[str] = []
 
         for item in queries[:3]:
             query_text = str(item.get("query", "") or "").strip()
@@ -870,16 +955,21 @@ class TubeMindApp:
                 min_seconds=MIN_SECONDS_DEFAULT,
                 order="relevance",
             )
+            if not videos:
+                transcript_failures.append(f'No caption-friendly YouTube results were found for query "{query_text}".')
+                continue
             for video in videos:
                 if video.video_id in queued_ids:
                     continue
                 queued_ids.add(video.video_id)
-                segments, _ = self._fetch_transcript(video)
+                segments, transcript_error = self._fetch_transcript(video)
                 if not segments:
+                    transcript_failures.append(f"{video.title}: {transcript_error or 'unknown transcript error'}")
                     time.sleep(self._transcript_request_delay())
                     continue
                 transcript = self._save_transcript_artifact(runtime, video, segments)
                 if not transcript.strip():
+                    transcript_failures.append(f"{video.title}: fetched transcript was empty after normalization")
                     time.sleep(self._transcript_request_delay())
                     continue
                 documents.append(transcript)
@@ -894,12 +984,16 @@ class TubeMindApp:
                 break
 
         if not documents:
+            if transcript_failures:
+                raise RuntimeError(self._summarize_transcript_failures(transcript_failures))
             return
 
         track_id = await self._run_coro_on_rag_loop(runtime.rag.ainsert(documents, ids=ids, file_paths=file_paths))
         docs = await self._get_docs_by_track_id(runtime, track_id)
-        successful, _ = self._classify_doc_status_docs(docs, {video.video_id: video for video in indexed_videos})
+        successful, failed = self._classify_doc_status_docs(docs, {video.video_id: video for video in indexed_videos})
         if not successful:
+            if failed:
+                raise RuntimeError(self._summarize_indexing_failures(failed))
             return
 
         grouped: dict[str, list[dict[str, Any]]] = {}

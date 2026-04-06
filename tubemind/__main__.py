@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import uvicorn
 
+from tubemind.config import PORT
+
 
 def main() -> None:
     """Start the local TubeMind development server on the default port.
@@ -26,7 +28,7 @@ def main() -> None:
     executing `__main__` module and can fail when started via `python -m`.
     """
 
-    uvicorn.run("tubemind.routes:app", host="0.0.0.0", port=5001, reload=False)
+    uvicorn.run("tubemind.routes:app", host="0.0.0.0", port=PORT, reload=False)
 
 
 if __name__ == "__main__":
