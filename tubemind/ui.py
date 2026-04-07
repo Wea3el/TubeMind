@@ -201,7 +201,14 @@ def render_sidebar(boards: list[dict[str, Any]], active_board_id: int | None) ->
 # ---------------------------------------------------------------------------
 
 def render_chat_bubble_user(question: str) -> Any:
-    """Right-aligned user message bubble."""
+    """Render one right-aligned user message bubble inside the chat thread.
+
+    TubeMind's workspace models each note as a user question followed by one
+    assistant answer bubble. Keeping the user half of that pair in a dedicated
+    renderer makes it possible to reuse the same structure for durable notes
+    and for optimistic client-side pending states injected before the HTMX
+    request completes.
+    """
     return Div(
         Div(
             P(question, cls="cb-text"),
@@ -212,7 +219,13 @@ def render_chat_bubble_user(question: str) -> Any:
 
 
 def render_chat_bubble_bot(note: dict[str, Any]) -> Any:
-    """Left-aligned TubeMind answer bubble with source chips."""
+    """Render one persisted TubeMind answer bubble with its note metadata.
+
+    This function is responsible for the durable assistant half of a saved
+    board note. It reads the persisted note evidence count and creation time so
+    the thread stays compact while still linking users to the full note detail
+    page when they want the underlying sources.
+    """
     note_id = int(note.get("id", 0) or 0)
     chunk_count = len(list_note_chunks(note_id))
     created = format_timestamp(int(note.get("created_at", 0) or 0))
@@ -237,8 +250,52 @@ def render_chat_bubble_bot(note: dict[str, Any]) -> Any:
     )
 
 
+def render_chat_bubble_bot_skeleton(status_label: str = "Indexing sources and drafting answer...") -> Any:
+    """Render the transient pending assistant bubble used during HTMX submits.
+
+    The loading state should look like a real TubeMind note block rather than a
+    separate spinner widget. This renderer mirrors the final assistant bubble
+    shape with skeleton text lines and placeholder chips so the pending state
+    can be cloned into the chat thread immediately while the server performs
+    retrieval, indexing, and synthesis work.
+    """
+
+    return Div(
+        Div(
+            Div(
+                Span("🎬", cls="cb-icon"),
+                Span("TubeMind", cls="cb-name"),
+                Span("Working", cls="cb-chip cb-chip-pending"),
+                cls="cb-header",
+            ),
+            P(status_label, cls="cb-pending-copy"),
+            Div(
+                Span("", cls="cb-skeleton-line cb-skeleton-line-wide", aria_hidden="true"),
+                Span("", cls="cb-skeleton-line cb-skeleton-line-mid", aria_hidden="true"),
+                Span("", cls="cb-skeleton-line cb-skeleton-line-wide", aria_hidden="true"),
+                Span("", cls="cb-skeleton-line cb-skeleton-line-short", aria_hidden="true"),
+                cls="cb-skeleton-copy",
+            ),
+            Div(
+                Span("", cls="cb-chip cb-chip-skeleton cb-chip-skeleton-wide", aria_hidden="true"),
+                Span("", cls="cb-chip cb-chip-skeleton cb-chip-skeleton-mid", aria_hidden="true"),
+                Span("", cls="cb-chip cb-chip-skeleton cb-chip-skeleton-short", aria_hidden="true"),
+                cls="cb-footer cb-footer-pending",
+            ),
+            cls="cb cb-bot cb-bot-pending",
+        ),
+        cls="cb-row cb-row-bot",
+    )
+
+
 def render_chat_thread(notes: list[dict[str, Any]]) -> Any:
-    """Full scrollable conversation thread."""
+    """Render the full scrollable board conversation thread.
+
+    The thread stays intentionally simple: every saved note becomes a user
+    bubble followed by a TubeMind answer bubble in chronological order. Pending
+    optimistic content is injected client-side so this server renderer can stay
+    focused on durable state returned from SQLite.
+    """
     if not notes:
         return Div(
             Div(
@@ -264,7 +321,14 @@ def render_chat_thread(notes: list[dict[str, Any]]) -> Any:
 
 
 def render_chat_input(active_board: Optional[dict[str, Any]]) -> Any:
-    """Sticky composer bar at the bottom — Enter sends, Shift+Enter = newline."""
+    """Render the sticky chat composer and the optimistic-submit client hooks.
+
+    The composer does more than post the question form. It also owns the small
+    client-side script that injects a temporary user bubble plus a pending
+    TubeMind skeleton bubble immediately on submit, disables the controls while
+    the HTMX request is in flight, and restores the composer if the request
+    fails.
+    """
     board_id_val = str(int(active_board.get("id", 0) or 0)) if active_board else ""
 
     return Div(
@@ -281,15 +345,16 @@ def render_chat_input(active_board: Optional[dict[str, Any]]) -> Any:
                     cls="tm-textarea",
                     **{"onkeydown": "tmKey(event)"},
                 ),
-                Button("↑", type="submit", cls="tm-send", title="Send"),
+                Button("↑", type="submit", cls="tm-send", title="Send", id="tm-send"),
                 cls="tm-composer",
             ),
-            Span("⏳ Searching YouTube…", cls="htmx-indicator tm-thinking"),
+            Span("Searching YouTube...", cls="tm-thinking", id="tm-thinking"),
             _hx_post="/api/questions",
             _hx_target="#workspace-root",
             _hx_swap="outerHTML",
-            _hx_indicator=".tm-thinking",
+            id="tm-question-form",
         ),
+        Div(render_chat_bubble_bot_skeleton(), id="tm-pending-template", cls="tm-hidden-template", aria_hidden="true"),
         P("TubeMind searches YouTube videos and cites timestamps.", cls="tm-disclaimer"),
         Script("""
 function tmKey(e) {
@@ -299,22 +364,180 @@ function tmKey(e) {
     }
 }
 (function () {
+    if (window.__tubeMindComposerBooted) return;
+    window.__tubeMindComposerBooted = true;
+
+    function findForm(evt) {
+        var elt = evt && evt.detail && evt.detail.elt;
+        if (elt && elt.id === 'tm-question-form') return elt;
+        if (elt && elt.closest) return elt.closest('#tm-question-form');
+        return document.getElementById('tm-question-form');
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getThread() {
+        return document.getElementById('chat-thread');
+    }
+
     function boot() {
         var ta = document.getElementById('tm-input');
-        if (!ta) return;
+        if (!ta) return null;
         ta.style.height = 'auto';
+        if (ta.dataset.tmBooted === 'true') {
+            return ta;
+        }
         ta.addEventListener('input', function () {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 180) + 'px';
         });
+        ta.dataset.tmBooted = 'true';
         ta.focus();
+        return ta;
     }
+
     function scrollDown() {
-        var t = document.getElementById('chat-thread');
+        var t = getThread();
         if (t) t.scrollTop = t.scrollHeight;
     }
+
+    function setPendingState(isPending) {
+        var form = document.getElementById('tm-question-form');
+        var ta = document.getElementById('tm-input');
+        var send = document.getElementById('tm-send');
+        var thinking = document.getElementById('tm-thinking');
+        var titleGroup = document.getElementById('tm-board-title-group');
+        var status = document.getElementById('tm-board-status');
+        if (form) {
+            form.dataset.pending = isPending ? 'true' : 'false';
+            form.classList.toggle('is-pending', !!isPending);
+        }
+        if (ta) ta.disabled = !!isPending;
+        if (send) send.disabled = !!isPending;
+        if (thinking) thinking.classList.toggle('is-visible', !!isPending);
+        if (!titleGroup) return;
+        if (isPending) {
+            if (!status) {
+                status = document.createElement('span');
+                status.id = 'tm-board-status';
+                status.className = 'cw-status';
+                titleGroup.insertBefore(status, titleGroup.firstChild);
+            }
+            if (!Object.prototype.hasOwnProperty.call(status.dataset, 'originalText')) {
+                status.dataset.originalText = status.textContent || '';
+            }
+            status.dataset.pendingManaged = 'true';
+            status.textContent = 'WORKING';
+            status.classList.add('is-working');
+        } else if (status && status.dataset.pendingManaged === 'true') {
+            var originalText = status.dataset.originalText || '';
+            status.textContent = originalText;
+            status.classList.remove('is-working');
+            delete status.dataset.pendingManaged;
+            delete status.dataset.originalText;
+            if (!originalText) {
+                status.remove();
+            }
+        }
+    }
+
+    function removePendingRows() {
+        var thread = getThread();
+        if (!thread) return;
+        thread.querySelectorAll('[data-tm-pending-row="true"]').forEach(function (node) {
+            node.remove();
+        });
+        if (!thread.children.length && thread.dataset.hadEmptyState === 'true') {
+            var empty = document.createElement('div');
+            empty.className = 'chat-empty-state';
+            empty.innerHTML = ''
+                + '<p class="chat-empty-icon">🎬</p>'
+                + '<p class="chat-empty-title">Ask anything about YouTube videos</p>'
+                + '<p class="chat-empty-sub">TubeMind searches relevant YouTube videos, reads their transcripts, and gives you a cited answer with timestamps so you do not have to watch hours of content.</p>';
+            thread.appendChild(empty);
+        }
+    }
+
+    function appendPendingRows(questionText) {
+        var form = document.getElementById('tm-question-form');
+        var thread = getThread();
+        var templateHost = document.getElementById('tm-pending-template');
+        if (!form || !thread || !templateHost) return;
+        if (form.dataset.pending === 'true') return;
+
+        removePendingRows();
+        var trimmed = String(questionText || '').trim();
+        if (!trimmed) return;
+
+        var empty = thread.querySelector('.chat-empty-state');
+        thread.dataset.hadEmptyState = empty ? 'true' : 'false';
+        if (empty) {
+            empty.remove();
+        }
+
+        var userRow = document.createElement('div');
+        userRow.className = 'cb-row cb-row-user';
+        userRow.setAttribute('data-tm-pending-row', 'true');
+        userRow.innerHTML = '<div class="cb cb-user"><p class="cb-text">' + escapeHtml(trimmed) + '</p></div>';
+        thread.appendChild(userRow);
+
+        var skeletonRow = templateHost.firstElementChild.cloneNode(true);
+        skeletonRow.setAttribute('data-tm-pending-row', 'true');
+        thread.appendChild(skeletonRow);
+        scrollDown();
+    }
+
     document.addEventListener('DOMContentLoaded', function () { boot(); scrollDown(); });
-    document.addEventListener('htmx:afterSwap',   function () { boot(); scrollDown(); });
+    document.addEventListener('htmx:beforeRequest', function (evt) {
+        var form = findForm(evt);
+        if (!form || form.id !== 'tm-question-form') return;
+        var ta = document.getElementById('tm-input');
+        var questionText = ta ? ta.value : '';
+        if (!String(questionText || '').trim()) return;
+        form.dataset.lastQuestion = questionText;
+        appendPendingRows(questionText);
+        if (ta) {
+            ta.value = '';
+            ta.style.height = 'auto';
+        }
+        setPendingState(true);
+    });
+    document.addEventListener('htmx:afterSwap', function () {
+        setPendingState(false);
+        boot();
+        scrollDown();
+    });
+    document.addEventListener('htmx:responseError', function (evt) {
+        var form = findForm(evt);
+        if (!form || form.id !== 'tm-question-form') return;
+        removePendingRows();
+        setPendingState(false);
+        var ta = boot();
+        if (ta && form.dataset.lastQuestion) {
+            ta.value = form.dataset.lastQuestion;
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(ta.scrollHeight, 180) + 'px';
+        }
+    });
+    document.addEventListener('htmx:sendError', function (evt) {
+        var form = findForm(evt);
+        if (!form || form.id !== 'tm-question-form') return;
+        removePendingRows();
+        setPendingState(false);
+        var ta = boot();
+        if (ta && form.dataset.lastQuestion) {
+            ta.value = form.dataset.lastQuestion;
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(ta.scrollHeight, 180) + 'px';
+        }
+    });
 }());
 """),
         cls="tm-input-area",
@@ -331,6 +554,14 @@ def render_question_form(active_board: Optional[dict[str, Any]]) -> Any:
 # ---------------------------------------------------------------------------
 
 def render_workspace(workspace: BoardWorkspace, user: dict[str, Any]) -> Any:
+    """Render the full authenticated TubeMind workspace shell.
+
+    This view combines the sidebar, active board header, chat thread, and
+    composer into the single fragment that HTMX replaces after most actions.
+    The board status badge intentionally exposes the persisted board state so
+    long-running retrieval/indexing work can be reflected consistently in the
+    top bar during optimistic submits and after the final server response.
+    """
     board = workspace.active_board
     board_name = str(board.get("title", "") or "New board") if board else "TubeMind"
     board_status = str(board.get("status", "") or "").upper() if board else ""
@@ -351,9 +582,10 @@ def render_workspace(workspace: BoardWorkspace, user: dict[str, Any]) -> Any:
                 # top bar inside chat window
                 Div(
                     Div(
-                        Span(board_status, cls="cw-status") if board_status else "",
+                        Span(board_status, cls=f"cw-status {'is-working' if board_status == 'WORKING' else ''}".strip(), id="tm-board-status") if board_status else "",
                         Span(board_name, cls="cw-title"),
                         cls="cw-title-group",
+                        id="tm-board-title-group",
                     ),
                     cls="cw-topbar",
                 ),
