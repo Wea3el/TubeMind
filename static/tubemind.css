@@ -506,6 +506,8 @@ select,
 
 .detail-title {
     max-width: 14ch;
+    line-height: 1.02;
+    overflow-wrap: anywhere;
 }
 
 .board-summary {
@@ -704,6 +706,7 @@ select {
 .detail-head {
     display: grid;
     gap: 8px;
+    overflow: visible;
 }
 
 .detail-main {
@@ -1090,6 +1093,12 @@ border: none;
 .workspace-shell {
     align-items: stretch;
     height: calc(100vh - 120px);
+}
+
+.workspace-shell-detail {
+    align-items: start;
+    height: auto;
+    min-height: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════

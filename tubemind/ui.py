@@ -698,7 +698,7 @@ def render_note_detail_page(
                 ),
                 cls="detail-main",
             ),
-            cls="workspace-shell",
+            cls="workspace-shell workspace-shell-detail",
         ),
         cls="app-shell",
     )
