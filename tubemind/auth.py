@@ -53,12 +53,24 @@ if boards_table not in db.t:
         pk="id",
     )
 
+board_sessions_table = db.t.board_sessions
+if board_sessions_table not in db.t:
+    board_sessions_table.create(
+        dict(
+            id=int,
+            board_id=int,
+            created_at=int,
+        ),
+        pk="id",
+    )
+
 board_notes_table = db.t.board_notes
 if board_notes_table not in db.t:
     board_notes_table.create(
         dict(
             id=int,
             board_id=int,
+            session_id=int,
             question=str,
             answer=str,
             query_mode=str,
@@ -66,6 +78,12 @@ if board_notes_table not in db.t:
         ),
         pk="id",
     )
+else:
+    # Migration: add session_id column to existing board_notes tables that
+    # were created before this sprint. Existing rows get NULL (legacy notes).
+    existing_cols = {col[1] for col in db.execute("PRAGMA table_info(board_notes)").fetchall()}
+    if "session_id" not in existing_cols:
+        db.execute("ALTER TABLE board_notes ADD COLUMN session_id INTEGER")
 
 board_queries_table = db.t.board_queries
 if board_queries_table not in db.t:
@@ -390,17 +408,81 @@ def list_board_notes(board_id: int) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
-def create_board_note(board_id: int, question: str, answer: str, query_mode: str) -> dict[str, Any]:
+def create_session(board_id: int) -> dict[str, Any]:
+    """Create a new independent chat session inside one board.
+
+    Sessions are the unit of conversation isolation. Each session maps to one
+    independent chat thread inside a board, so users can start fresh without
+    losing prior research. The board corpus (LightRAG index + indexed videos)
+    is shared across all sessions in the same board.
+    """
+
+    inserted = board_sessions_table.insert(
+        dict(
+            board_id=board_id,
+            created_at=now_ms(),
+        )
+    )
+    if isinstance(inserted, dict):
+        return dict(inserted)
+    return dict(board_sessions_table[int(inserted)])
+
+
+def list_sessions(board_id: int) -> list[dict[str, Any]]:
+    """Return all sessions for one board ordered newest first.
+
+    The sidebar session selector shows the most recent sessions at the top so
+    users can quickly resume their latest thread without scrolling.
+    """
+
+    rows = board_sessions_table.rows_where("board_id = ?", [board_id], order_by="created_at DESC")
+    return [dict(row) for row in rows]
+
+
+def get_or_create_latest_session(board_id: int) -> dict[str, Any]:
+    """Return the most recent session for a board, creating one if none exist.
+
+    This is the default entry point when a user opens a board without
+    specifying a session. It ensures every board always has at least one
+    active session to write notes into.
+    """
+
+    sessions = list_sessions(board_id)
+    if sessions:
+        return sessions[0]
+    return create_session(board_id)
+
+
+def list_session_notes(board_id: int, session_id: int) -> list[dict[str, Any]]:
+    """Return notes for one specific session thread in chronological order.
+
+    This replaces the flat list_board_notes call for the chat thread renderer.
+    Only notes belonging to the given session_id are returned, keeping each
+    chat thread isolated from others in the same board.
+    """
+
+    rows = board_notes_table.rows_where(
+        "board_id = ? AND session_id = ?",
+        [board_id, session_id],
+        order_by="created_at ASC",
+    )
+    return [dict(row) for row in rows]
+
+
+def create_board_note(board_id: int, question: str, answer: str, query_mode: str, session_id: int | None = None) -> dict[str, Any]:
     """Persist one board note and return the inserted row.
 
     A note is the durable unit shown as a Keep-style card. Saving the note
     first gives the service layer a stable ``note_id`` that related tables such
     as note evidence and LLM-generated YouTube queries can reference.
+    The optional session_id groups this note into an independent chat thread
+    within the board. Notes with no session_id are legacy pre-session notes.
     """
 
     inserted = board_notes_table.insert(
         dict(
             board_id=board_id,
+            session_id=session_id,
             question=question,
             answer=answer,
             query_mode=query_mode,

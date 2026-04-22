@@ -23,10 +23,14 @@ from youtube_transcript_api import NoTranscriptFound, TooManyRequests, YouTubeRe
 from tubemind.auth import (
     create_board,
     create_board_note,
+    create_session,
     get_board_for_user,
+    get_or_create_latest_session,
     list_board_notes,
     list_board_videos,
     list_boards,
+    list_session_notes,
+    list_sessions,
     replace_note_chunks,
     save_note_queries,
     set_active_board,
@@ -165,23 +169,59 @@ class TubeMindApp:
             self._board_runtimes[board_id] = runtime
         return runtime
 
-    def build_workspace(self, active_board_id: int | None, *, notice: str = "", warning: str = "") -> BoardWorkspace:
-        """Assemble the sidebar and active board payload used by the UI."""
+    def build_workspace(self, active_board_id: int | None, *, active_session_id: int | None = None, notice: str = "", warning: str = "") -> BoardWorkspace:
+        """Assemble the sidebar and active board payload used by the UI.
+
+        When a session_id is provided the chat thread is scoped to that session
+        only. If no session_id is given the most recent session for the board is
+        used, creating one automatically if the board has none yet.
+        """
 
         boards = list_boards(self.user_id)
         active_board = get_board_for_user(self.user_id, active_board_id)
-        notes = list_board_notes(int(active_board["id"])) if active_board else []
-        return BoardWorkspace(boards=boards, active_board=active_board, notes=notes, notice=notice, warning=warning)
+        sessions: list[dict] = []
+        resolved_session_id: int | None = None
+        notes: list[dict] = []
+
+        if active_board:
+            board_id_int = int(active_board["id"])
+            sessions = list_sessions(board_id_int)
+            if active_session_id:
+                resolved_session_id = active_session_id
+            elif sessions:
+                resolved_session_id = int(sessions[0]["id"])
+            if resolved_session_id:
+                notes = list_session_notes(board_id_int, resolved_session_id)
+            else:
+                # Fallback: show all notes for legacy boards with no sessions yet
+                notes = list_board_notes(board_id_int)
+
+        return BoardWorkspace(
+            boards=boards,
+            active_board=active_board,
+            notes=notes,
+            notice=notice,
+            warning=warning,
+            sessions=sessions,
+            active_session_id=resolved_session_id,
+        )
 
     async def create_empty_board(self) -> BoardWorkspace:
-        """Create an empty board and make it the active workspace."""
+        """Create an empty board with a default session and make it active."""
 
         board = create_board(self.user_id, "Untitled board", "", "", "idle")
-        set_active_board(self.user_id, int(board["id"]))
-        return self.build_workspace(int(board["id"]), notice="Created a new board.")
+        board_id_int = int(board["id"])
+        set_active_board(self.user_id, board_id_int)
+        session = create_session(board_id_int)
+        return self.build_workspace(board_id_int, active_session_id=int(session["id"]), notice="Created a new board.")
 
-    async def answer_question(self, board_id: int | None, question: str, mode: str = DEFAULT_QUERY_MODE) -> BoardWorkspace:
-        """Create a new note by reusing or expanding the selected board corpus."""
+    async def answer_question(self, board_id: int | None, question: str, mode: str = DEFAULT_QUERY_MODE, session_id: int | None = None) -> BoardWorkspace:
+        """Create a new note by reusing or expanding the selected board corpus.
+
+        The session_id scopes the note to one independent chat thread inside the
+        board. If no session_id is provided the latest session is used, creating
+        one automatically so every answer always belongs to a session.
+        """
 
         question_text = str(question or "").strip()
         if not question_text:
@@ -195,11 +235,18 @@ class TubeMindApp:
         board_id_int = int(board["id"])
         set_active_board(self.user_id, board_id_int)
 
+        # Resolve or create the session for this answer
+        if session_id:
+            resolved_session_id = session_id
+        else:
+            session = get_or_create_latest_session(board_id_int)
+            resolved_session_id = int(session["id"])
+
         notes = list_board_notes(board_id_int)
         if notes:
             fit = await self._assess_topic_fit(board, notes, question_text)
             if not fit["is_fit"]:
-                return self.build_workspace(board_id_int, warning=fit["warning"])
+                return self.build_workspace(board_id_int, active_session_id=resolved_session_id, warning=fit["warning"])
 
         update_board(board_id_int, status="working", updated_at=now_ms())
         runtime = await self._get_board_runtime(board_id_int)
@@ -226,12 +273,13 @@ class TubeMindApp:
             question=question_text,
             answer=answer_text or "TubeMind found evidence but could not synthesize a final answer.",
             query_mode=mode,
+            session_id=resolved_session_id,
         )
         save_note_queries(board_id_int, int(note["id"]), queries)
         replace_note_chunks(int(note["id"]), result.get("chunks", []))
         update_board(board_id_int, status="ready", last_question_at=now_ms(), updated_at=now_ms())
         await self._refresh_board_summary(board_id_int)
-        return self.build_workspace(board_id_int, notice="Added a new note to the board.")
+        return self.build_workspace(board_id_int, active_session_id=resolved_session_id, notice="Added a new note to the board.")
 
     async def _assess_topic_fit(self, board: dict[str, Any], notes: list[dict[str, Any]], question: str) -> dict[str, Any]:
         """Keep follow-up notes near the board topic instead of silently drifting."""

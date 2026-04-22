@@ -6,12 +6,14 @@ from fasthtml.common import FileResponse, JSONResponse, Link, RedirectResponse, 
 
 from tubemind.auth import (
     current_user,
+    create_session,
     ensure_demo_user_session,
     get_board_for_user,
     get_note_for_user,
     google_exchange_code,
     google_userinfo,
     list_boards,
+    list_sessions,
     logout_user,
     set_active_board,
     upsert_user_profile,
@@ -191,8 +193,12 @@ def create_app():
         return render_workspace(workspace, user)
 
     @rt("/boards/{board_id}")
-    async def get_board(request: Request, session, board_id: int):
-        """Switch the active board and render the workspace for that board."""
+    async def get_board(request: Request, session, board_id: int, session_id: int = 0):
+        """Switch the active board and render the workspace for that board.
+
+        An optional session_id query parameter scopes the chat thread to one
+        specific session. If omitted the most recent session is used.
+        """
 
         user = authenticated_user(session)
         if not user:
@@ -202,7 +208,8 @@ def create_app():
             return RedirectResponse("/", status_code=303)
         set_active_board(user["id"], int(board["id"]))
         app_state = await get_user_app(user["id"])
-        workspace = app_state.build_workspace(int(board["id"]))
+        resolved_session_id = int(session_id) if session_id else None
+        workspace = app_state.build_workspace(int(board["id"]), active_session_id=resolved_session_id)
         return render_workspace(workspace, {**user, "active_board_id": int(board["id"])})
 
     @rt("/notes/{note_id}")
@@ -228,6 +235,31 @@ def create_app():
         workspace = await app_state.create_empty_board()
         return render_workspace(workspace, {**user, "active_board_id": int(workspace.active_board.get("id", 0) or 0) if workspace.active_board else None})
 
+    @rt("/api/sessions", methods=["POST"])
+    async def api_create_session(request: Request, session):
+        """Create a new chat session inside the active board and reload the workspace.
+
+        This is triggered by the 'New Chat' button in the sidebar. It creates a
+        fresh session under the current board so the user gets a clean thread
+        without losing the board's existing research corpus or prior notes.
+        """
+
+        user = authenticated_user(session)
+        if not user:
+            return RedirectResponse("/login", status_code=303)
+        form = await request.form()
+        board_id_raw = str(form.get("board_id", "") or "").strip()
+        board_id = int(board_id_raw) if board_id_raw.isdigit() else None
+        if not board_id:
+            return RedirectResponse("/", status_code=303)
+        board = get_board_for_user(user["id"], board_id)
+        if not board:
+            return RedirectResponse("/", status_code=303)
+        new_session = create_session(board_id)
+        app_state = await get_user_app(user["id"])
+        workspace = app_state.build_workspace(board_id, active_session_id=int(new_session["id"]))
+        return render_workspace(workspace, {**user, "active_board_id": board_id})
+
     @rt("/api/questions", methods=["POST"])
     async def api_add_question(request: Request, session):
         """Answer a question inside the selected board and refresh the workspace."""
@@ -237,12 +269,14 @@ def create_app():
             return RedirectResponse("/login", status_code=303)
         form = await request.form()
         board_id_raw = str(form.get("board_id", "") or "").strip()
+        session_id_raw = str(form.get("session_id", "") or "").strip()
         question = str(form.get("question", "") or "")
         mode = str(form.get("mode", "") or "")
         board_id = int(board_id_raw) if board_id_raw.isdigit() else None
+        session_id = int(session_id_raw) if session_id_raw.isdigit() else None
         app_state = await get_user_app(user["id"])
         try:
-            workspace = await app_state.answer_question(board_id, question, mode)
+            workspace = await app_state.answer_question(board_id, question, mode, session_id=session_id)
         except Exception as exc:
             workspace = app_state.build_workspace(board_id or int(user.get("active_board_id") or 0) or None, warning=str(exc))
         active_board_id = int(workspace.active_board.get("id", 0) or 0) if workspace.active_board else None

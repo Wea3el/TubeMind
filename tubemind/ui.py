@@ -151,7 +151,7 @@ def render_login_page(session, error: str = "") -> Any:
 # Sidebar
 # ---------------------------------------------------------------------------
 
-def render_sidebar(boards: list[dict[str, Any]], active_board_id: int | None) -> Any:
+def render_sidebar(boards: list[dict[str, Any]], active_board_id: int | None, sessions: list[dict[str, Any]] | None = None, active_session_id: int | None = None) -> Any:
     board_links = [
         A(
             Div(
@@ -171,6 +171,36 @@ def render_sidebar(boards: list[dict[str, Any]], active_board_id: int | None) ->
         )
         for board in boards
     ]
+
+    # Session selector — shown when a board is active and has sessions
+    session_section: Any = ""
+    if active_board_id and sessions:
+        session_links = [
+            A(
+                Span(
+                    f"Chat {index}",
+                    cls=f"sidebar-session {'is-active' if int(s.get('id', 0) or 0) == int(active_session_id or 0) else ''}",
+                ),
+                href=f"/boards/{active_board_id}?session_id={int(s.get('id', 0) or 0)}",
+                cls="sidebar-session-link",
+            )
+            for index, s in enumerate(reversed(sessions), start=1)
+        ]
+        session_section = Div(
+            Div(
+                Span("Chats", cls="sidebar-sessions-label"),
+                Form(
+                    Input(type="hidden", name="board_id", value=str(active_board_id)),
+                    Button("+ New Chat", type="submit", cls="sidebar-new-chat-btn"),
+                    _hx_post="/api/sessions",
+                    _hx_target="#workspace-root",
+                    _hx_swap="outerHTML",
+                ),
+                cls="sidebar-sessions-head",
+            ),
+            Div(*session_links, cls="sidebar-session-list"),
+            cls="sidebar-sessions",
+        )
 
     return Div(
         Div(
@@ -192,6 +222,7 @@ def render_sidebar(boards: list[dict[str, Any]], active_board_id: int | None) ->
                 cls="sidebar-empty",
             )
         ),
+        session_section,
         cls="sidebar-shell",
     )
 
@@ -320,20 +351,23 @@ def render_chat_thread(notes: list[dict[str, Any]]) -> Any:
     return Div(*rows, cls="chat-thread", id="chat-thread")
 
 
-def render_chat_input(active_board: Optional[dict[str, Any]]) -> Any:
+def render_chat_input(active_board: Optional[dict[str, Any]], active_session_id: int | None = None) -> Any:
     """Render the sticky chat composer and the optimistic-submit client hooks.
 
     The composer does more than post the question form. It also owns the small
     client-side script that injects a temporary user bubble plus a pending
     TubeMind skeleton bubble immediately on submit, disables the controls while
     the HTMX request is in flight, and restores the composer if the request
-    fails.
+    fails. The session_id is passed as a hidden field so every submitted note
+    is scoped to the correct chat thread.
     """
     board_id_val = str(int(active_board.get("id", 0) or 0)) if active_board else ""
+    session_id_val = str(int(active_session_id)) if active_session_id else ""
 
     return Div(
         Form(
             Input(type="hidden", name="board_id", value=board_id_val),
+            Input(type="hidden", name="session_id", value=session_id_val),
             Input(type="hidden", name="mode", value=DEFAULT_QUERY_MODE),
             Div(
                 Textarea(
@@ -545,8 +579,8 @@ function tmKey(e) {
 
 
 # render_question_form is called by routes.py — keep the name
-def render_question_form(active_board: Optional[dict[str, Any]]) -> Any:
-    return render_chat_input(active_board)
+def render_question_form(active_board: Optional[dict[str, Any]], active_session_id: int | None = None) -> Any:
+    return render_chat_input(active_board, active_session_id)
 
 
 # ---------------------------------------------------------------------------
@@ -576,6 +610,8 @@ def render_workspace(workspace: BoardWorkspace, user: dict[str, Any]) -> Any:
             render_sidebar(
                 workspace.boards,
                 int(board.get("id", 0) or 0) if board else None,
+                sessions=workspace.sessions,
+                active_session_id=workspace.active_session_id,
             ),
             # ── Chat window ────────────────────────────────────────────────
             Div(
@@ -594,7 +630,7 @@ def render_workspace(workspace: BoardWorkspace, user: dict[str, Any]) -> Any:
                 # scrollable messages
                 render_chat_thread(workspace.notes),
                 # sticky input
-                render_chat_input(board),
+                render_chat_input(board, workspace.active_session_id),
                 cls="chat-window",
             ),
             cls="workspace-shell",
