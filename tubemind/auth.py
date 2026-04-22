@@ -46,12 +46,17 @@ if boards_table not in db.t:
             summary=str,
             topic_anchor=str,
             status=str,
+            status_message=str,
             created_at=int,
             updated_at=int,
             last_question_at=int,
         ),
         pk="id",
     )
+else:
+    _board_cols = {col[1] for col in db.execute("PRAGMA table_info(boards)").fetchall()}
+    if "status_message" not in _board_cols:
+        db.execute("ALTER TABLE boards ADD COLUMN status_message TEXT")
 
 board_sessions_table = db.t.board_sessions
 if board_sessions_table not in db.t:
@@ -364,6 +369,40 @@ def touch_board(board_id: int, *, status: str | None = None, last_question_at: i
     if last_question_at is not None:
         fields["last_question_at"] = last_question_at
     return update_board(board_id, **fields)
+
+
+def set_board_progress(board_id: int, message: str) -> None:
+    """Write a short human-readable progress message for the active request."""
+
+    try:
+        update_board(board_id, status_message=message)
+    except Exception:
+        pass
+
+
+def delete_board(user_id: str, board_id: int) -> bool:
+    """Delete a board and all its associated data, returning True if deleted."""
+
+    board = get_board_for_user(user_id, board_id)
+    if not board:
+        return False
+    for note in list(board_notes_table.rows_where("board_id = ?", [board_id])):
+        for chunk in list(board_note_chunks_table.rows_where("note_id = ?", [note["id"]])):
+            board_note_chunks_table.delete(chunk["id"])
+        board_notes_table.delete(note["id"])
+    for row in list(board_queries_table.rows_where("board_id = ?", [board_id])):
+        board_queries_table.delete(row["id"])
+    for row in list(board_videos_table.rows_where("board_id = ?", [board_id])):
+        board_videos_table.delete(row["id"])
+    for sess in list(board_sessions_table.rows_where("board_id = ?", [board_id])):
+        board_sessions_table.delete(sess["id"])
+    boards_table.delete(board_id)
+    rows = list(users_table.rows_where("active_board_id = ? AND id = ?", [board_id, user_id], limit=1))
+    if rows:
+        u = _row_dict(rows[0])
+        u["active_board_id"] = None
+        users_table.update(u)
+    return True
 
 
 def list_boards(user_id: str) -> list[dict[str, Any]]:

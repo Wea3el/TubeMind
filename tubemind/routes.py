@@ -7,6 +7,7 @@ from fasthtml.common import FileResponse, JSONResponse, Link, RedirectResponse, 
 from tubemind.auth import (
     current_user,
     create_session,
+    delete_board,
     ensure_demo_user_session,
     get_board_for_user,
     get_note_for_user,
@@ -281,6 +282,38 @@ def create_app():
             workspace = app_state.build_workspace(board_id or int(user.get("active_board_id") or 0) or None, warning=str(exc))
         active_board_id = int(workspace.active_board.get("id", 0) or 0) if workspace.active_board else None
         return render_workspace(workspace, {**user, "active_board_id": active_board_id})
+
+    @rt("/api/boards/{board_id}", methods=["DELETE"])
+    async def api_delete_board(request: Request, session, board_id: int):
+        """Delete a board and all its notes, then return the updated workspace."""
+
+        user = authenticated_user(session)
+        if not user:
+            return RedirectResponse("/login", status_code=303)
+        app_state = await get_user_app(user["id"])
+        delete_board(user["id"], board_id)
+        remaining = list_boards(user["id"])
+        next_board = remaining[0] if remaining else None
+        next_id = int(next_board["id"]) if next_board else None
+        if next_id:
+            set_active_board(user["id"], next_id)
+        workspace = app_state.build_workspace(next_id)
+        return render_workspace(workspace, {**user, "active_board_id": next_id})
+
+    @rt("/api/boards/{board_id}/progress")
+    async def api_board_progress(request: Request, session, board_id: int):
+        """Return the current progress message for an in-flight board request."""
+
+        user = authenticated_user(session)
+        if not user:
+            return JSONResponse({"message": ""})
+        board = get_board_for_user(user["id"], board_id)
+        if not board:
+            return JSONResponse({"message": ""})
+        return JSONResponse({
+            "message": str(board.get("status_message", "") or ""),
+            "status": str(board.get("status", "") or ""),
+        })
 
     @rt("/api/boards/sidebar")
     async def api_sidebar(request: Request, session):
