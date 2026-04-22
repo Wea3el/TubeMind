@@ -173,6 +173,26 @@ h1, h2, h3 { font-family: "Space Grotesk", sans-serif; letter-spacing: -0.03em; 
     grid-template-columns: minmax(0, 1fr) 220px;
     gap: 18px;
 }
+.search-settings { margin-top: 14px; }
+.search-settings-toggle {
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 600;
+    list-style: none;
+    user-select: none;
+}
+.search-settings-toggle::-webkit-details-marker { display: none; }
+.search-settings-toggle::before { content: "▸  "; font-size: 0.7rem; }
+details[open] > .search-settings-toggle::before { content: "▾  "; }
+.search-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+}
 .field { display: grid; gap: 8px; }
 .field-label { font-weight: 700; }
 textarea,
@@ -227,7 +247,6 @@ textarea { min-height: 120px; }
 .detail-answer,
 .chunk-copy {
     margin: 14px 0 0;
-    white-space: pre-wrap;
     font-family: "Source Sans 3", sans-serif;
     font-size: 1rem;
     line-height: 1.65;
@@ -235,6 +254,63 @@ textarea { min-height: 120px; }
     border: 1px solid rgba(31, 41, 51, 0.08);
     border-radius: 16px;
     padding: 14px 16px;
+}
+.note-answer,
+.chunk-copy { white-space: pre-wrap; }
+
+/* ── Markdown-rendered answer ──────────────────────────────── */
+.detail-answer h1,
+.detail-answer h2,
+.detail-answer h3 {
+    font-family: "Space Grotesk", sans-serif;
+    margin: 1.1em 0 0.35em;
+    line-height: 1.2;
+}
+.detail-answer h1 { font-size: 1.4rem; }
+.detail-answer h2 { font-size: 1.2rem; }
+.detail-answer h3 { font-size: 1.05rem; }
+.detail-answer p  { margin: 0.55em 0; }
+.detail-answer ul,
+.detail-answer ol { padding-left: 1.5em; margin: 0.4em 0; }
+.detail-answer li { margin: 0.2em 0; }
+.detail-answer a  { color: var(--accent-strong); font-weight: 600; }
+.detail-answer strong { font-weight: 700; }
+.detail-answer em { font-style: italic; }
+.detail-answer hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 1.2em 0;
+}
+.detail-answer blockquote {
+    margin: 0.5em 0;
+    padding: 0.5em 1em;
+    border-left: 3px solid var(--accent-soft);
+    color: var(--muted);
+    font-style: italic;
+}
+.detail-answer blockquote p { margin: 0; }
+
+/* ── Note-card source chips ────────────────────────────────── */
+.note-source-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+.note-source-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 0.76rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.note-source-chip--more {
+    background: rgba(31,41,51,0.06);
+    color: var(--muted);
 }
 .note-meta-row,
 .chunk-head,

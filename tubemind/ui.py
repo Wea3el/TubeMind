@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from fasthtml.common import A, Button, Div, Form, H1, H2, H3, Iframe, Img, Input, Label, Option, P, Pre, Script, Select, Span, Textarea, Title
+from fasthtml.common import A, Button, Details, Div, Form, H1, H2, H3, Iframe, Img, Input, Label, Option, P, Pre, Script, Select, Span, Summary, Textarea, Title
 
 from tubemind.auth import ERROR_MESSAGES, begin_oauth_session, google_auth_url, list_note_chunks, list_note_queries
-from tubemind.config import DEFAULT_QUERY_MODE, QUERY_MODE_LABELS
+from tubemind.config import DEFAULT_QUERY_MODE, MAX_VIDEOS_DEFAULT, MIN_SECONDS_DEFAULT, MIN_VIDEOS_DEFAULT, QUERY_MODE_LABELS
 from tubemind.models import BoardWorkspace
 
 
@@ -148,9 +148,31 @@ def render_question_form(active_board: Optional[dict[str, Any]]) -> Any:
                     name="mode",
                 ),
                 P("Balanced is the best default. Focused Detail is better for narrow follow-up questions.", cls="field-help"),
-                cls="field mode-field",
+                cls="field",
             ),
             cls="composer-grid",
+        ),
+        Details(
+            Summary("Search settings", cls="search-settings-toggle"),
+            Div(
+                Div(
+                    Label("Min. video length (s)", cls="field-label"),
+                    Input(type="number", name="min_seconds", value=str(MIN_SECONDS_DEFAULT), min="30", max="3600", step="30"),
+                    cls="field",
+                ),
+                Div(
+                    Label("Min videos to index", cls="field-label"),
+                    Input(type="number", name="min_videos", value=str(MIN_VIDEOS_DEFAULT), min="1", max="20", step="1"),
+                    cls="field",
+                ),
+                Div(
+                    Label("Max videos to index", cls="field-label"),
+                    Input(type="number", name="max_videos", value=str(MAX_VIDEOS_DEFAULT), min="1", max="20", step="1"),
+                    cls="field",
+                ),
+                cls="search-settings-grid",
+            ),
+            cls="search-settings",
         ),
         Div(
             Button("Add Note", type="submit", cls="primary-btn"),
@@ -227,15 +249,25 @@ def render_note_card(note: dict[str, Any]) -> Any:
 
     note_id = int(note.get("id", 0) or 0)
     chunk_rows = list_note_chunks(note_id)
+    source_chips = [
+        Span(
+            f"{str(c.get('video_title', 'Source') or 'Source')[:24].rstrip()} · {c.get('start_label', '0:00')}",
+            cls="note-source-chip",
+        )
+        for c in chunk_rows[:3]
+    ]
+    extra_count = len(chunk_rows) - 3
+    if extra_count > 0:
+        source_chips.append(Span(f"+{extra_count} more", cls="note-source-chip note-source-chip--more"))
     return A(
         Div(
             P(str(note.get("question", "") or ""), cls="note-question"),
             Pre(truncate_text(str(note.get("answer", "") or ""), limit=280), cls="note-answer"),
             Div(
                 Span(format_timestamp(int(note.get("created_at", 0) or 0)), cls="note-meta"),
-                Span(f"{len(chunk_rows)} source chunk(s)", cls="note-meta"),
                 cls="note-meta-row",
             ),
+            Div(*source_chips, cls="note-source-row") if source_chips else "",
             cls="note-card",
         ),
         href=f"/notes/{note_id}",
@@ -325,6 +357,22 @@ def render_note_detail_page(user: dict[str, Any], boards: list[dict[str, Any]], 
         for index, chunk in enumerate(chunks, start=1)
     ]
 
+    sources_md = ""
+    if chunks:
+        refs = []
+        for i, chunk in enumerate(chunks, 1):
+            title = str(chunk.get("video_title", "") or "Source video").strip()
+            timestamp = str(chunk.get("start_label", "") or "0:00").strip()
+            src_url = str(chunk.get("source_url", "") or "#").strip()
+            snippet = str(chunk.get("content", "") or "").strip()[:180]
+            if snippet:
+                snippet = snippet + ("…" if len(chunk.get("content", "") or "") > 180 else "")
+            refs.append(f"**[{i}]** *{title}* — [{timestamp}]({src_url})\n\n> {snippet}")
+        if refs:
+            sources_md = "\n\n---\n\n**Sources**\n\n" + "\n\n".join(refs)
+
+    answer_display = str(note.get("answer", "") or "") + sources_md
+
     return Div(
         Div(render_user_badge(user), cls="page-topbar"),
         Div(
@@ -338,7 +386,7 @@ def render_note_detail_page(user: dict[str, Any], boards: list[dict[str, Any]], 
                 ),
                 Div(
                     H3("Answer", cls="detail-section-title"),
-                    Pre(str(note.get("answer", "") or ""), cls="detail-answer"),
+                    Div(answer_display, cls="detail-answer", **{"data-md": "1"}),
                     cls="detail-panel",
                 ),
                 Div(

@@ -43,6 +43,7 @@ from tubemind.config import (
     DEFAULT_QUERY_MODE,
     MAX_VIDEOS_DEFAULT,
     MIN_SECONDS_DEFAULT,
+    MIN_VIDEOS_DEFAULT,
     QUERY_MODES,
     TRANSCRIPT_CANDIDATE_PADDING,
     TRANSCRIPT_RETRY_ATTEMPTS,
@@ -82,12 +83,6 @@ class TubeMindApp:
     async def shutdown(self) -> None:
         """Finalize initialized board corpora and stop the dedicated RAG loop."""
 
-        for runtime in list(self._board_runtimes.values()):
-            if runtime.rag is not None:
-                try:
-                    await self._run_coro_on_rag_loop(runtime.rag.finalize_storages())
-                except Exception:
-                    pass
         if self._rag_thread and self._rag_thread.is_alive():
             self._rag_loop.call_soon_threadsafe(self._rag_loop.stop)
             self._rag_thread.join(timeout=5)
@@ -135,16 +130,16 @@ class TubeMindApp:
         return await asyncio.wrap_future(future)
 
     async def _create_rag(self, working_dir: Path):
-        """Create a LightRAG instance rooted at one board directory."""
+        """Create a nano-graphrag GraphRAG instance rooted at one board directory."""
 
-        from lightrag import LightRAG
-        from lightrag.llm.openai import openai_complete_if_cache, openai_embed
+        from nano_graphrag import GraphRAG
+        from nano_graphrag._llm import openai_complete_if_cache
 
-        llm_model = partial(openai_complete_if_cache, self._llm_model)
-        return LightRAG(
+        llm_func = partial(openai_complete_if_cache, self._llm_model)
+        return GraphRAG(
             working_dir=str(working_dir),
-            llm_model_func=llm_model,
-            embedding_func=openai_embed,
+            best_model_func=llm_func,
+            cheap_model_func=llm_func,
         )
 
     async def _get_board_runtime(self, board_id: int) -> BoardRuntime:
@@ -164,7 +159,6 @@ class TubeMindApp:
         runtime.working_dir.mkdir(parents=True, exist_ok=True)
         runtime.transcript_dir.mkdir(parents=True, exist_ok=True)
         runtime.rag = await self._run_coro_on_rag_loop(self._create_rag(runtime.working_dir))
-        await self._run_coro_on_rag_loop(runtime.rag.initialize_storages())
         with self.lock:
             self._board_runtimes[board_id] = runtime
         return runtime
@@ -215,7 +209,7 @@ class TubeMindApp:
         session = create_session(board_id_int)
         return self.build_workspace(board_id_int, active_session_id=int(session["id"]), notice="Created a new board.")
 
-    async def answer_question(self, board_id: int | None, question: str, mode: str = DEFAULT_QUERY_MODE, session_id: int | None = None) -> BoardWorkspace:
+    async def answer_question(self, board_id: int | None, question: str, mode: str = DEFAULT_QUERY_MODE, session_id: int | None = None, min_seconds: int = MIN_SECONDS_DEFAULT, min_videos: int = MIN_VIDEOS_DEFAULT, max_videos: int = MAX_VIDEOS_DEFAULT) -> BoardWorkspace:
         """Create a new note by reusing or expanding the selected board corpus.
 
         The session_id scopes the note to one independent chat thread inside the
@@ -257,7 +251,7 @@ class TubeMindApp:
             queries = self._fallback_youtube_queries(board, question_text)
 
         if queries:
-            await self._expand_board_corpus(board_id_int, runtime, queries)
+            await self._expand_board_corpus(board_id_int, runtime, queries, min_seconds=min_seconds, min_videos=min_videos, max_videos=max_videos)
 
         result = initial
         if queries or not result.get("chunks") or not str(result.get("answer", "") or "").strip():
@@ -938,57 +932,13 @@ class TubeMindApp:
 
         return str(item.get("videoId") or item.get("url") or item.get("title") or doc_id)
 
-    def _is_already_processed_duplicate(self, status_doc: Any) -> bool:
-        """Detect duplicate-insert errors that mean the transcript already exists."""
 
-        error_msg = str(getattr(status_doc, "error_msg", "") or "").lower()
-        return "content already exists." in error_msg
-
-    def _classify_doc_status_docs(self, docs: dict[str, Any], video_lookup: Optional[dict[str, YouTubeVideo]] = None) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-        """Split LightRAG status rows into successful and failed documents."""
-
-        from lightrag.base import DocStatus
-
-        successful_map: dict[str, dict[str, str]] = {}
-        failed_map: dict[str, dict[str, str]] = {}
-        video_lookup = video_lookup or {}
-        video_lookup_by_url = {video.url: video for video in video_lookup.values()}
-        for doc_id, status_doc in docs.items():
-            video_id = self._youtube_video_id_from_doc_id(doc_id)
-            file_path = str(getattr(status_doc, "file_path", "") or "")
-            video = video_lookup.get(video_id) or video_lookup_by_url.get(file_path)
-            if video and not video_id:
-                video_id = video.video_id
-            title = video.title if video else self._extract_title_from_summary(str(getattr(status_doc, "content_summary", "") or ""))
-            title = title or file_path or doc_id
-            item = {
-                "videoId": video_id,
-                "title": title,
-                "url": file_path or (video.url if video else yt_watch_url(video_id) if video_id else ""),
-                "thumbnail": video.thumbnail if video else "",
-            }
-            key = self._doc_item_key(doc_id, item)
-            status = getattr(status_doc, "status", None)
-            if status == DocStatus.PROCESSED or self._is_already_processed_duplicate(status_doc):
-                failed_map.pop(key, None)
-                successful_map.setdefault(key, item)
-            elif status == DocStatus.FAILED and key not in successful_map:
-                failed_map.setdefault(key, {**item, "reason": f"Indexing failed: {str(getattr(status_doc, 'error_msg', '') or 'unknown error')}"})
-        return list(successful_map.values()), list(failed_map.values())
-
-    async def _get_docs_by_track_id(self, runtime: BoardRuntime, track_id: str) -> dict[str, Any]:
-        """Read LightRAG document status rows for one insertion batch."""
-
-        return await self._run_coro_on_rag_loop(runtime.rag.doc_status.get_docs_by_track_id(track_id))
-
-    async def _expand_board_corpus(self, board_id: int, runtime: BoardRuntime, queries: list[dict[str, str]]) -> None:
+    async def _expand_board_corpus(self, board_id: int, runtime: BoardRuntime, queries: list[dict[str, str]], *, min_seconds: int = MIN_SECONDS_DEFAULT, min_videos: int = MIN_VIDEOS_DEFAULT, max_videos: int = MAX_VIDEOS_DEFAULT) -> None:
         """Search, fetch, and index additional videos into one board corpus."""
 
         existing_ids = {str(item.get("video_id", "") or "").strip() for item in list_board_videos(board_id)}
         queued_ids = set(existing_ids)
         documents: list[str] = []
-        ids: list[str] = []
-        file_paths: list[str] = []
         indexed_videos: list[YouTubeVideo] = []
         origin_query_by_video_id: dict[str, str] = {}
         transcript_failures: list[str] = []
@@ -999,8 +949,8 @@ class TubeMindApp:
                 continue
             videos = await self.youtube_search(
                 query_text,
-                max_videos=self._transcript_candidate_pool(MAX_VIDEOS_DEFAULT),
-                min_seconds=MIN_SECONDS_DEFAULT,
+                max_videos=self._transcript_candidate_pool(max_videos),
+                min_seconds=min_seconds,
                 order="relevance",
             )
             if not videos:
@@ -1021,14 +971,12 @@ class TubeMindApp:
                     time.sleep(self._transcript_request_delay())
                     continue
                 documents.append(transcript)
-                ids.append(f"youtube:{video.video_id}")
-                file_paths.append(video.url)
                 indexed_videos.append(video)
                 origin_query_by_video_id[video.video_id] = query_text
                 time.sleep(self._transcript_request_delay())
-                if len(documents) >= MAX_VIDEOS_DEFAULT:
+                if len(documents) >= max_videos:
                     break
-            if len(documents) >= MAX_VIDEOS_DEFAULT:
+            if len(documents) >= max_videos:
                 break
 
         if not documents:
@@ -1036,73 +984,144 @@ class TubeMindApp:
                 raise RuntimeError(self._summarize_transcript_failures(transcript_failures))
             return
 
-        track_id = await self._run_coro_on_rag_loop(runtime.rag.ainsert(documents, ids=ids, file_paths=file_paths))
-        docs = await self._get_docs_by_track_id(runtime, track_id)
-        successful, failed = self._classify_doc_status_docs(docs, {video.video_id: video for video in indexed_videos})
-        if not successful:
-            if failed:
-                raise RuntimeError(self._summarize_indexing_failures(failed))
-            return
+        if len(documents) < min_videos:
+            failure_hint = f"\n\n{self._summarize_transcript_failures(transcript_failures)}" if transcript_failures else ""
+            raise RuntimeError(
+                f"TubeMind only found {len(documents)} usable transcript(s), but at least {min_videos} are required. "
+                f"Try lowering 'Min videos to index', reducing 'Min. video length', or rephrasing your question.{failure_hint}"
+            )
+
+        await self._run_coro_on_rag_loop(runtime.rag.ainsert(documents))
 
         grouped: dict[str, list[dict[str, Any]]] = {}
-        for item in successful:
-            video_id = str(item.get("videoId", "") or "")
-            grouped.setdefault(origin_query_by_video_id.get(video_id, ""), []).append(
+        for video in indexed_videos:
+            origin_query = origin_query_by_video_id.get(video.video_id, "")
+            grouped.setdefault(origin_query, []).append(
                 {
-                    "video_id": video_id,
-                    "title": str(item.get("title", "") or ""),
-                    "url": str(item.get("url", "") or ""),
-                    "thumbnail": str(item.get("thumbnail", "") or ""),
-                    "channel_title": next((video.channel_title for video in indexed_videos if video.video_id == video_id), ""),
+                    "video_id": video.video_id,
+                    "title": video.title,
+                    "url": video.url,
+                    "thumbnail": video.thumbnail,
+                    "channel_title": video.channel_title,
                 }
             )
         for origin_query, videos in grouped.items():
             upsert_board_videos(board_id, videos, origin_query=origin_query)
 
+    def _find_relevant_chunks(self, runtime: BoardRuntime, board_videos: list[dict[str, Any]], question: str, top_k: int = 6) -> list[dict[str, Any]]:
+        """Find the most relevant transcript passages for timestamp source attribution.
+
+        Results are capped at 2 chunks per video so evidence spans multiple sources.
+        """
+
+        _stop = {"the", "a", "an", "is", "in", "of", "to", "and", "or", "for", "what", "how", "why", "when", "where", "who", "i", "it", "be", "do", "have"}
+        q_tokens = set(re.findall(r"[a-z0-9]+", question.lower())) - _stop
+        if not q_tokens:
+            return []
+
+        title_by_id = {str(v.get("video_id", "") or ""): str(v.get("title", "") or "Indexed transcript") for v in board_videos}
+        url_by_id = {str(v.get("video_id", "") or ""): str(v.get("url", "") or "") for v in board_videos}
+
+        candidates: list[dict[str, Any]] = []
+        for video in board_videos:
+            video_id = str(video.get("video_id", "") or "")
+            if not video_id:
+                continue
+            artifact_path = runtime.transcript_dir / f"{video_id}.json"
+            if not artifact_path.exists():
+                continue
+            try:
+                artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            segments = artifact.get("segments", [])
+            window, step = 6, 3
+            for i in range(0, max(1, len(segments) - window + 1), step):
+                chunk_segs = segments[i : i + window]
+                if not chunk_segs:
+                    continue
+                chunk_text = " ".join(str(s.get("text", "")) for s in chunk_segs)
+                chunk_tokens = set(re.findall(r"[a-z0-9]+", chunk_text.lower()))
+                score = len(q_tokens & chunk_tokens)
+                if score == 0:
+                    continue
+                candidates.append(
+                    {
+                        "video_id": video_id,
+                        "content": chunk_text,
+                        "start_seconds": float(chunk_segs[0].get("start", 0.0)),
+                        "score": score,
+                        "title": title_by_id.get(video_id, "Indexed transcript"),
+                        "url": url_by_id.get(video_id, ""),
+                    }
+                )
+
+        candidates.sort(key=lambda x: x["score"], reverse=True)
+        seen_windows: set[str] = set()
+        chunks_per_video: dict[str, int] = {}
+        normalized: list[dict[str, Any]] = []
+        for chunk in candidates:
+            video_id = chunk["video_id"]
+            # Deduplicate overlapping windows within the same minute of the same video
+            window_key = f"{video_id}_{int(chunk['start_seconds'] // 60)}"
+            if window_key in seen_windows:
+                continue
+            seen_windows.add(window_key)
+            # Cap at 2 chunks per video so results span multiple sources
+            if chunks_per_video.get(video_id, 0) >= 2:
+                continue
+            chunks_per_video[video_id] = chunks_per_video.get(video_id, 0) + 1
+            start_seconds = chunk["start_seconds"]
+            normalized.append(
+                {
+                    "title": chunk["title"],
+                    "url": chunk["url"],
+                    "content": chunk["content"],
+                    "reference_id": "",
+                    "chunk_id": f"{video_id}_{int(start_seconds)}",
+                    "video_id": video_id,
+                    "start_seconds": start_seconds,
+                    "embed_url": self._youtube_embed_url(video_id, start_seconds) if video_id else "",
+                    "source_url": yt_watch_url(video_id, start_seconds) if video_id else chunk["url"],
+                    "start_label": seconds_to_label(int(start_seconds)),
+                }
+            )
+            if len(normalized) >= top_k:
+                break
+        return normalized
+
     async def _query_board(self, board_id: int, runtime: BoardRuntime, question: str, mode: str, *, allow_empty: bool) -> dict[str, Any]:
-        """Run a board-scoped LightRAG query and normalize the answer payload."""
+        """Run a board-scoped nano-graphrag query and normalize the answer payload."""
 
         board_videos = list_board_videos(board_id)
         if not board_videos:
             return {"question": question, "mode": mode, "answer": "", "chunks": []}
 
-        from lightrag import QueryParam
+        from nano_graphrag import QueryParam
+
+        # nano-graphrag supports local / global / naive — map LightRAG aliases
+        nano_mode = {"mix": "global", "hybrid": "global"}.get(mode, mode)
+        if nano_mode not in ("local", "global", "naive"):
+            nano_mode = "global"
 
         try:
-            answer = str(await self._run_coro_on_rag_loop(runtime.rag.aquery(question, param=QueryParam(mode=mode, response_type="Multiple Paragraphs")))).strip()
-            data = await self._run_coro_on_rag_loop(runtime.rag.aquery_data(question, param=QueryParam(mode=mode)))
+            answer = str(
+                await self._run_coro_on_rag_loop(
+                    runtime.rag.aquery(question, param=QueryParam(mode=nano_mode))
+                )
+            ).strip()
         except Exception:
             if allow_empty:
                 return {"question": question, "mode": mode, "answer": "", "chunks": []}
             raise
 
-        chunks = list((data or {}).get("data", {}).get("chunks", []) or [])
-        if not chunks and ((not answer) or answer.lower() in {"none", "null"}):
+        if (not answer) or answer.lower() in {"none", "null"}:
             if allow_empty:
                 return {"question": question, "mode": mode, "answer": "", "chunks": []}
             raise RuntimeError("No transcript chunks matched that note yet.")
 
-        title_by_url = {str(item.get("url", "") or ""): str(item.get("title", "") or "Indexed transcript") for item in board_videos}
-        normalized_chunks: list[dict[str, Any]] = []
-        for chunk in chunks:
-            file_path = str(chunk.get("file_path", "") or "").strip()
-            video_id = self._video_id_from_url(file_path)
-            start_seconds = self._find_chunk_start_seconds(runtime, video_id, str(chunk.get("content", "") or ""))
-            normalized_chunks.append(
-                {
-                    "title": title_by_url.get(file_path, file_path or "Indexed transcript"),
-                    "url": file_path,
-                    "content": str(chunk.get("content", "") or "").strip(),
-                    "reference_id": str(chunk.get("reference_id", "") or "").strip(),
-                    "chunk_id": str(chunk.get("chunk_id", "") or "").strip(),
-                    "video_id": video_id,
-                    "start_seconds": start_seconds,
-                    "embed_url": self._youtube_embed_url(video_id, start_seconds) if video_id else "",
-                    "source_url": yt_watch_url(video_id, start_seconds) if video_id else file_path,
-                    "start_label": seconds_to_label(int(start_seconds)),
-                }
-            )
-        return {"question": question, "mode": mode, "answer": answer, "chunks": normalized_chunks}
+        chunks = self._find_relevant_chunks(runtime, board_videos, question)
+        return {"question": question, "mode": mode, "answer": answer, "chunks": chunks}
 
 
 _user_apps: dict[str, TubeMindApp] = {}

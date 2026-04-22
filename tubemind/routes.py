@@ -19,11 +19,25 @@ from tubemind.auth import (
     set_active_board,
     upsert_user_profile,
 )
-from tubemind.config import CSS_FILE, DEMO_AUTH_ENABLED, GOOGLE_AUTH_ENABLED, HTMX_SSE_EXTENSION_URL, SESSION_SECRET
+from tubemind.config import CSS_FILE, DEMO_AUTH_ENABLED, GOOGLE_AUTH_ENABLED, HTMX_SSE_EXTENSION_URL, MAX_VIDEOS_DEFAULT, MIN_SECONDS_DEFAULT, MIN_VIDEOS_DEFAULT, SESSION_SECRET
 from tubemind.services import get_user_app, shutdown_all_user_apps
 from tubemind.ui import render_login_page, render_note_detail_page, render_sidebar, render_workspace
 
 CSS_HREF = f"/static/tubemind.css?v={int(CSS_FILE.stat().st_mtime)}"
+
+MARKDOWN_RENDER_SCRIPT = """
+(function () {
+    function renderMd() {
+        document.querySelectorAll('[data-md="1"]:not([data-md-done])').forEach(function (el) {
+            el.dataset.mdDone = '1';
+            el.innerHTML = marked.parse(el.textContent || '');
+        });
+    }
+    document.addEventListener('DOMContentLoaded', renderMd);
+    document.addEventListener('htmx:afterSwap', renderMd);
+    renderMd();
+})();
+"""
 
 THEME_BOOTSTRAP_SCRIPT = """
 (() => {
@@ -99,6 +113,8 @@ def create_app():
         secret_key=SESSION_SECRET,
         hdrs=(
             Script(src=HTMX_SSE_EXTENSION_URL),
+            Script(src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"),
+            Script(MARKDOWN_RENDER_SCRIPT),
             Link(
                 rel="icon",
                 href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230f766e'/%3E%3Cpath d='M15 19h34L37 33v12H27V33z' fill='%23fff8ee'/%3E%3C/svg%3E",
@@ -275,9 +291,21 @@ def create_app():
         mode = str(form.get("mode", "") or "")
         board_id = int(board_id_raw) if board_id_raw.isdigit() else None
         session_id = int(session_id_raw) if session_id_raw.isdigit() else None
+        try:
+            min_seconds = max(30, int(str(form.get("min_seconds", "") or "").strip()))
+        except (ValueError, TypeError):
+            min_seconds = MIN_SECONDS_DEFAULT
+        try:
+            min_videos = max(1, min(20, int(str(form.get("min_videos", "") or "").strip())))
+        except (ValueError, TypeError):
+            min_videos = MIN_VIDEOS_DEFAULT
+        try:
+            max_videos = max(min_videos, min(20, int(str(form.get("max_videos", "") or "").strip())))
+        except (ValueError, TypeError):
+            max_videos = MAX_VIDEOS_DEFAULT
         app_state = await get_user_app(user["id"])
         try:
-            workspace = await app_state.answer_question(board_id, question, mode, session_id=session_id)
+            workspace = await app_state.answer_question(board_id, question, mode, session_id=session_id, min_seconds=min_seconds, min_videos=min_videos, max_videos=max_videos)
         except Exception as exc:
             workspace = app_state.build_workspace(board_id or int(user.get("active_board_id") or 0) or None, warning=str(exc))
         active_board_id = int(workspace.active_board.get("id", 0) or 0) if workspace.active_board else None
