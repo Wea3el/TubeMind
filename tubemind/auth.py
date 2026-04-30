@@ -452,7 +452,7 @@ def create_session(board_id: int) -> dict[str, Any]:
 
     Sessions are the unit of conversation isolation. Each session maps to one
     independent chat thread inside a board, so users can start fresh without
-    losing prior research. The board corpus (LightRAG index + indexed videos)
+    losing prior research. The board corpus (Fast GraphRAG index + indexed videos)
     is shared across all sessions in the same board.
     """
 

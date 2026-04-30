@@ -5,14 +5,19 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "nano-graphrag>=0.0.8",
+    "chroma-hnswlib==0.7.6a4",
+    "fast-graphrag>=0.0.5",
+    "hnswlib",
     "monsterui>=1.0.44",
-    "openai>=2.24.0",
+    "openai>=1.52.1,<2.0.0",
     "python-dotenv>=1.2.1",
     "python-fasthtml>=0.12.47",
     "youtube-transcript-api==0.6.2",
     "yt-dlp>=2026.3.3",
 ]
+
+[tool.uv.sources]
+hnswlib = { path = "vendor/hnswlib-dist-shim" }
 
 [dependency-groups]
 dev = [

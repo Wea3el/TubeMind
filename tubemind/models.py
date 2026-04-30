@@ -96,7 +96,7 @@ class YouTubeVideo:
 
 @dataclass(slots=True)
 class BoardRuntime:
-    """Hold the per-board LightRAG runtime and on-disk artifact locations.
+    """Hold the per-board Fast GraphRAG runtime and on-disk artifact locations.
 
     Each board owns its own cumulative knowledge base so follow-up notes stay
     scoped to one topic instead of sharing a single corpus across the user.

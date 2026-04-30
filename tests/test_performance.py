@@ -9,7 +9,7 @@ What is tested (no real APIs needed):
     when reading board B while both run simultaneously
 
 What is NOT tested here:
-  - LightRAG indexing latency (requires real filesystem + model)
+  - Fast GraphRAG indexing latency (requires real filesystem + model)
   - OpenAI response times (requires real API key and network)
   These would just measure mock speed, which is meaningless.
 

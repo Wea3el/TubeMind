@@ -11,7 +11,6 @@ import re
 import tempfile
 import threading
 import time
-from functools import partial
 from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
@@ -81,22 +80,45 @@ class TubeMindApp:
         return None
 
     async def shutdown(self) -> None:
-        """Finalize initialized board corpora and stop the dedicated RAG loop."""
+        """Release initialized board graph resources and stop the RAG loop.
+
+        TubeMind creates board runtimes lazily and keeps them in memory for the
+        user's session so repeated questions can reuse the same graph store.
+        Some backends expose an explicit storage finalizer while Fast GraphRAG
+        persists as part of insert/query operations, so shutdown checks for the
+        optional method before stopping the dedicated event loop.
+        """
+
+        for runtime in list(self._board_runtimes.values()):
+            if runtime.rag is not None:
+                try:
+                    finalize = getattr(runtime.rag, "finalize_storages", None)
+                    if finalize is not None:
+                        await self._run_coro_on_rag_loop(finalize())
+                except Exception:
+                    pass
 
         if self._rag_thread and self._rag_thread.is_alive():
             self._rag_loop.call_soon_threadsafe(self._rag_loop.stop)
             self._rag_thread.join(timeout=5)
 
     def _start_rag_runtime(self) -> None:
-        """Start the background asyncio loop used for LightRAG operations."""
+        """Start the background asyncio loop used for Fast GraphRAG operations.
+
+        The FastHTML request loop should not be reused for long-running graph
+        insertions because those operations combine async OpenAI calls, vector
+        storage writes, and graph persistence. A dedicated loop gives every
+        per-user runtime a stable place to schedule graph work from sync or
+        async route handlers without blocking unrelated UI requests.
+        """
 
         self._rag_thread = threading.Thread(target=self._run_rag_loop, name=f"tubemind-rag-{self.user_id}", daemon=True)
         self._rag_thread.start()
         if not self._rag_loop_ready.wait(timeout=5):
-            raise RuntimeError("TubeMind could not start the LightRAG worker loop.")
+            raise RuntimeError("TubeMind could not start the Fast GraphRAG worker loop.")
 
     def _run_rag_loop(self) -> None:
-        """Run the dedicated event loop until shutdown."""
+        """Run the dedicated graph event loop until the app shuts down."""
 
         asyncio.set_event_loop(self._rag_loop)
         self._rag_loop_ready.set()
@@ -113,14 +135,14 @@ class TubeMindApp:
             self._rag_loop.close()
 
     def _submit_coro_to_rag_loop(self, coro) -> concurrent.futures.Future[Any]:
-        """Submit one coroutine to the LightRAG loop."""
+        """Submit one coroutine to the Fast GraphRAG worker loop."""
 
         if not self._rag_thread or not self._rag_thread.is_alive():
             raise RuntimeError("TubeMind knowledge-base worker is not running.")
         return asyncio.run_coroutine_threadsafe(coro, self._rag_loop)
 
     async def _run_coro_on_rag_loop(self, coro):
-        """Await work scheduled onto the LightRAG loop."""
+        """Await graph work after scheduling it on the dedicated worker loop."""
 
         try:
             future = self._submit_coro_to_rag_loop(coro)
@@ -130,20 +152,56 @@ class TubeMindApp:
         return await asyncio.wrap_future(future)
 
     async def _create_rag(self, working_dir: Path):
-        """Create a nano-graphrag GraphRAG instance rooted at one board directory."""
+        """Create a Fast GraphRAG instance rooted at one board directory.
 
-        from nano_graphrag import GraphRAG
-        from nano_graphrag._llm import openai_complete_if_cache
+        TubeMind keeps one graph store per board so follow-up questions retrieve
+        only from the transcripts already accepted into that topic workspace.
+        Fast GraphRAG needs a domain prompt and entity ontology up front; the
+        defaults here are intentionally YouTube-research oriented but can be
+        overridden from the environment for experiments without changing code.
+        """
 
-        llm_func = partial(openai_complete_if_cache, self._llm_model)
+        from fast_graphrag import GraphRAG
+        from fast_graphrag._llm import OpenAIEmbeddingService, OpenAILLMService
+
+        entity_types = [
+            item.strip()
+            for item in os.environ.get(
+                "FAST_GRAPHRAG_ENTITY_TYPES",
+                "Video,Channel,Creator,Product,Feature,Claim,Price,Comparison,Recommendation,Evidence",
+            ).split(",")
+            if item.strip()
+        ]
+        example_queries = os.environ.get(
+            "FAST_GRAPHRAG_EXAMPLE_QUERIES",
+            "\n".join(
+                [
+                    "What are the strongest recommendations across these videos?",
+                    "Which products, features, or tradeoffs do reviewers compare?",
+                    "What source evidence supports the answer to this user question?",
+                ]
+            ),
+        )
+        embedding_model = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+        embedding_dim = int(os.environ.get("OPENAI_EMBEDDING_DIM", "1536"))
+
         return GraphRAG(
             working_dir=str(working_dir),
-            best_model_func=llm_func,
-            cheap_model_func=llm_func,
+            domain=os.environ.get(
+                "FAST_GRAPHRAG_DOMAIN",
+                "Analyze YouTube transcript evidence for a board-scoped research question. "
+                "Identify videos, creators, products, claims, comparisons, and supporting evidence that help answer the user.",
+            ),
+            example_queries=example_queries,
+            entity_types=entity_types,
+            config=GraphRAG.Config(
+                llm_service=OpenAILLMService(model=self._llm_model),
+                embedding_service=OpenAIEmbeddingService(model=embedding_model, embedding_dim=embedding_dim),
+            ),
         )
 
     async def _get_board_runtime(self, board_id: int) -> BoardRuntime:
-        """Return the lazily initialized runtime for one board."""
+        """Return the lazily initialized Fast GraphRAG runtime for one board."""
 
         with self.lock:
             cached = self._board_runtimes.get(board_id)
@@ -917,12 +975,18 @@ class TubeMindApp:
         return None, "\n".join(errors) if errors else "unknown transcript error"
 
     def _youtube_video_id_from_doc_id(self, doc_id: str) -> str:
-        """Extract the YouTube id from a LightRAG document id."""
+        """Extract the YouTube id from a persisted transcript document id.
+
+        Older board stores and insertion code use ``youtube:<video_id>`` ids to
+        keep source identity stable across transcript fetches, graph inserts,
+        and database rows. Fast GraphRAG stores source details in chunk metadata
+        instead of exposing a document-status table.
+        """
 
         return doc_id.split(":", 1)[1].strip() if doc_id.startswith("youtube:") else ""
 
     def _extract_title_from_summary(self, summary: str) -> str:
-        """Recover the transcript title from a LightRAG status summary."""
+        """Recover a transcript title from a status or diagnostic summary."""
 
         match = re.search(r"(?m)^Title:\s*(.+)$", summary or "")
         return match.group(1).strip() if match else ""
@@ -934,7 +998,16 @@ class TubeMindApp:
 
 
     async def _expand_board_corpus(self, board_id: int, runtime: BoardRuntime, queries: list[dict[str, str]], *, min_seconds: int = MIN_SECONDS_DEFAULT, min_videos: int = MIN_VIDEOS_DEFAULT, max_videos: int = MAX_VIDEOS_DEFAULT) -> None:
-        """Search, fetch, and index additional videos into one board corpus."""
+        """Search, fetch, and index additional videos into one board corpus.
+
+        This is the ingestion side of TubeMind's retrieval loop. It expands the
+        board only with videos not already recorded in the app database, stores
+        normalized transcripts on disk for timestamp recovery, inserts transcript
+        text into Fast GraphRAG with YouTube metadata attached to each document,
+        enforces the user-selected minimum usable video count, and persists the
+        successfully indexed videos so future questions can reuse the same
+        evidence without another YouTube search.
+        """
 
         existing_ids = {str(item.get("video_id", "") or "").strip() for item in list_board_videos(board_id)}
         queued_ids = set(existing_ids)
@@ -991,7 +1064,31 @@ class TubeMindApp:
                 f"Try lowering 'Min videos to index', reducing 'Min. video length', or rephrasing your question.{failure_hint}"
             )
 
-        await self._run_coro_on_rag_loop(runtime.rag.ainsert(documents))
+        metadata = [
+            {
+                "doc_id": f"youtube:{video.video_id}",
+                "video_id": video.video_id,
+                "title": video.title,
+                "url": video.url,
+                "thumbnail": video.thumbnail,
+                "channel_title": video.channel_title,
+            }
+            for video in indexed_videos
+        ]
+        try:
+            await self._run_coro_on_rag_loop(runtime.rag.async_insert(documents, metadata=metadata, show_progress=False))
+        except Exception as exc:
+            failed = [
+                {
+                    "videoId": video.video_id,
+                    "title": video.title,
+                    "url": video.url,
+                    "thumbnail": video.thumbnail,
+                    "reason": f"Indexing failed: {exc}",
+                }
+                for video in indexed_videos
+            ]
+            raise RuntimeError(self._summarize_indexing_failures(failed)) from exc
 
         grouped: dict[str, list[dict[str, Any]]] = {}
         for video in indexed_videos:
@@ -1091,37 +1188,62 @@ class TubeMindApp:
         return normalized
 
     async def _query_board(self, board_id: int, runtime: BoardRuntime, question: str, mode: str, *, allow_empty: bool) -> dict[str, Any]:
-        """Run a board-scoped nano-graphrag query and normalize the answer payload."""
+        """Run a board-scoped Fast GraphRAG query and normalize the answer payload.
+
+        Fast GraphRAG returns typed context objects instead of the nested
+        query-data dictionary TubeMind used previously. This
+        method keeps the route and note-storage contract unchanged by converting
+        retrieved graph chunks back into the same source chunk dictionaries the
+        UI already renders, using insertion metadata to recover YouTube titles,
+        URLs, thumbnails, and video ids.
+        """
 
         board_videos = list_board_videos(board_id)
         if not board_videos:
             return {"question": question, "mode": mode, "answer": "", "chunks": []}
 
-        from nano_graphrag import QueryParam
-
-        # nano-graphrag supports local / global / naive — map LightRAG aliases
-        nano_mode = {"mix": "global", "hybrid": "global"}.get(mode, mode)
-        if nano_mode not in ("local", "global", "naive"):
-            nano_mode = "global"
+        from fast_graphrag import QueryParam
 
         try:
-            answer = str(
-                await self._run_coro_on_rag_loop(
-                    runtime.rag.aquery(question, param=QueryParam(mode=nano_mode))
-                )
-            ).strip()
+            result = await self._run_coro_on_rag_loop(runtime.rag.async_query(question, params=QueryParam(with_references=True)))
         except Exception:
             if allow_empty:
                 return {"question": question, "mode": mode, "answer": "", "chunks": []}
             raise
 
-        if (not answer) or answer.lower() in {"none", "null"}:
+        answer = str(getattr(result, "response", "") or "").strip()
+        context = getattr(result, "context", None)
+        chunks = list(getattr(context, "chunks", []) or [])
+        if not chunks and ((not answer) or answer.lower() in {"none", "null"}):
             if allow_empty:
                 return {"question": question, "mode": mode, "answer": "", "chunks": []}
             raise RuntimeError("No transcript chunks matched that note yet.")
 
-        chunks = self._find_relevant_chunks(runtime, board_videos, question)
-        return {"question": question, "mode": mode, "answer": answer, "chunks": chunks}
+        title_by_url = {str(item.get("url", "") or ""): str(item.get("title", "") or "Indexed transcript") for item in board_videos}
+        normalized_chunks: list[dict[str, Any]] = []
+        for chunk_item in chunks:
+            chunk = chunk_item[0] if isinstance(chunk_item, tuple) else chunk_item
+            metadata = dict(getattr(chunk, "metadata", {}) or {})
+            content = str(getattr(chunk, "content", "") or "").strip()
+            file_path = str(metadata.get("url", "") or "").strip()
+            video_id = str(metadata.get("video_id", "") or "").strip() or self._video_id_from_url(file_path)
+            start_seconds = self._find_chunk_start_seconds(runtime, video_id, content)
+            chunk_id = str(getattr(chunk, "id", "") or "").strip()
+            normalized_chunks.append(
+                {
+                    "title": str(metadata.get("title", "") or "") or title_by_url.get(file_path, file_path or "Indexed transcript"),
+                    "url": file_path,
+                    "content": content,
+                    "reference_id": chunk_id,
+                    "chunk_id": chunk_id,
+                    "video_id": video_id,
+                    "start_seconds": start_seconds,
+                    "embed_url": self._youtube_embed_url(video_id, start_seconds) if video_id else "",
+                    "source_url": yt_watch_url(video_id, start_seconds) if video_id else file_path,
+                    "start_label": seconds_to_label(int(start_seconds)),
+                }
+            )
+        return {"question": question, "mode": mode, "answer": answer, "chunks": normalized_chunks}
 
 
 _user_apps: dict[str, TubeMindApp] = {}
