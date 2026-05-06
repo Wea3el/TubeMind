@@ -3,17 +3,17 @@
 answer_question is a multi-stage orchestrator. Its three distinct paths are:
 
   Path A — First question on an empty board (slowest):
-    no topic-fit check → initial Fast GraphRAG query (empty) → plan research →
-    expand corpus (YouTube + transcripts) → second Fast GraphRAG query → save note
+    no topic-fit check → initial LightRAG query (empty) → plan research →
+    expand corpus (YouTube + transcripts) → second LightRAG query → save note
 
   Path B — Follow-up on a board that already has evidence (medium):
-    topic-fit check → initial Fast GraphRAG query (hits) → plan research (no new
+    topic-fit check → initial LightRAG query (hits) → plan research (no new
     queries needed) → save note  (skips corpus expansion entirely)
 
   Path C — Off-topic question (fastest):
     topic-fit check says no → early return, nothing else runs
 
-All external calls (OpenAI, Fast GraphRAG, YouTube) are replaced with AsyncMocks
+All external calls (OpenAI, LightRAG, YouTube) are replaced with AsyncMocks
 carrying small artificial delays so we can measure the pipeline overhead and
 verify that:
   - each path finishes within a sensible wall-clock budget
@@ -49,7 +49,7 @@ _EMPTY_RESULT = {"answer": "", "chunks": []}
 
 # Artificial delays that roughly model real API latency (ms scale for tests)
 _DELAY_LLM     = 0.08   # _assess_topic_fit / _plan_research / _refresh_board_summary
-_DELAY_QUERY   = 0.10   # _query_board  (Fast GraphRAG → OpenAI internally)
+_DELAY_QUERY   = 0.10   # _query_board  (LightRAG → OpenAI internally)
 _DELAY_EXPAND  = 0.25   # _expand_board_corpus  (YouTube search + transcripts + index)
 
 # ---------------------------------------------------------------------------

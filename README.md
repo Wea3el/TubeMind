@@ -1,6 +1,6 @@
 # TubeMind
 
-TubeMind is a board-based research app for learning from YouTube. Instead of treating each question as a one-off search, it groups related questions into topic-bound boards, pulls transcript evidence from relevant videos, indexes that material with Fast GraphRAG, and turns each answer into a reusable note with linked source evidence.
+TubeMind is a board-based research app for learning from YouTube. Instead of treating each question as a one-off search, it groups related questions into topic-bound boards, pulls transcript evidence from relevant videos, indexes that material with LightRAG, and turns each answer into a reusable note with linked source evidence.
 
 The current app is a server-rendered FastHTML experience with a redesigned premium UI, persistent light/dark theme toggle, Google OAuth or demo auth, durable SQLite state, and Railway-ready deployment support.
 
@@ -9,7 +9,7 @@ The current app is a server-rendered FastHTML experience with a redesigned premi
 - Creates a new board automatically from your first question.
 - Keeps follow-up questions inside the same topic region instead of starting from scratch each time.
 - Searches YouTube for caption-friendly, embeddable videos when the current board does not already have enough evidence.
-- Fetches transcripts, normalizes them, caches them on disk, and indexes them into a per-board Fast GraphRAG knowledge base.
+- Fetches transcripts, normalizes them, caches them on disk, and indexes them into a per-board LightRAG knowledge base.
 - Generates note answers backed by transcript chunks, then stores those notes so the board becomes more useful over time.
 - Lets you open note detail pages with evidence excerpts, linked timestamps, and the original search queries that expanded the board.
 
@@ -23,16 +23,16 @@ The current app is a server-rendered FastHTML experience with a redesigned premi
    - `TranscriptAPI`
    - `youtube-transcript-api`
    - `yt-dlp` subtitle download fallback
-6. It stores cleaned transcript artifacts under the app data directory and indexes them into that board's Fast GraphRAG store.
+6. It stores cleaned transcript artifacts under the app data directory and indexes them into that board's LightRAG store.
 7. It answers the question, stores the note, stores the source chunks, and refreshes the board summary over time.
 
-Each board has its own transcript cache and Fast GraphRAG working directory, so follow-up notes stay grounded in the same topic instead of polluting a single global corpus.
+Each board has its own transcript cache and LightRAG working directory, so follow-up notes stay grounded in the same topic instead of polluting a single global corpus.
 
 ## Stack
 
 - [FastHTML](https://fastht.ml/docs/) for the server-rendered app and route layer
 - [HTMX](https://htmx.org/) for incremental UI interactions
-- [Fast GraphRAG](https://github.com/circlemind-ai/fast-graphrag) for retrieval and graph-backed indexing
+- [LightRAG](https://github.com/HKUDS/LightRAG) for retrieval and graph-backed indexing
 - [OpenAI API](https://platform.openai.com/) for planning, synthesis, and answer generation
 - [YouTube Data API v3](https://developers.google.com/youtube/v3) for video search and metadata
 - [TranscriptAPI](https://transcriptapi.com/) plus transcript fallbacks for transcript acquisition
@@ -94,11 +94,6 @@ TUBEMIND_DATA_DIR=.local
 YOUTUBE_TRANSCRIPT_COOKIES_FILE=
 YOUTUBE_COOKIES_BROWSER=
 PORT=5001
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_EMBEDDING_DIM=1536
-FAST_GRAPHRAG_DOMAIN=
-FAST_GRAPHRAG_ENTITY_TYPES=
-FAST_GRAPHRAG_EXAMPLE_QUERIES=
 ```
 
 ### Run Locally
@@ -144,23 +139,9 @@ TubeMind stores two kinds of state:
   - indexed video metadata
 - Board filesystem state:
   - transcript artifacts
-  - per-board Fast GraphRAG working directories
+  - per-board LightRAG working directories
 
 By default this lives under `TUBEMIND_DATA_DIR`. In production, that directory should be mounted to persistent storage.
-
-## GraphRAG Benchmark
-
-Run the Fast GraphRAG benchmark with the configured OpenAI key:
-
-```bash
-uv run python benchmarks/benchmark_graphrag.py --backend fast-graphrag
-```
-
-To compare against the retired LightRAG integration without restoring it as a project dependency:
-
-```bash
-uv run --with lightrag-hku python benchmarks/benchmark_graphrag.py --backend both
-```
 
 ## Railway Deployment
 
