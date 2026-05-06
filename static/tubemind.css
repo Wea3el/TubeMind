@@ -21,6 +21,7 @@
 
 * { box-sizing: border-box; }
 
+html,
 body {
     margin: 0;
     min-height: 100vh;
@@ -255,7 +256,25 @@ textarea { min-height: 120px; }
     border-radius: 16px;
     padding: 14px 16px;
 }
-.note-answer,
+.note-answer { padding: 0; overflow: hidden; }
+.note-answer-text {
+    padding: 14px 16px;
+    margin: 0;
+    white-space: pre-wrap;
+}
+.note-answer-thumbs {
+    display: flex;
+    gap: 3px;
+    border-top: 1px solid rgba(31, 41, 51, 0.07);
+    height: 72px;
+    overflow: hidden;
+}
+.note-thumb {
+    flex: 1;
+    min-width: 0;
+    height: 72px;
+    object-fit: cover;
+}
 .chunk-copy { white-space: pre-wrap; }
 
 /* ── Markdown-rendered answer ──────────────────────────────── */
@@ -402,7 +421,7 @@ textarea { min-height: 120px; }
 }
 .logout-link { font-size: 0.88rem; text-decoration: none; }
 
-.login-shell { max-width: 400px; margin: 120px auto; }
+.login-shell { max-width: 400px; margin: 0 auto; padding-top: 120px; min-height: 100vh; }
 .login-card { padding: 40px 34px; }
 .login-title { margin: 0 0 8px; }
 .login-error {

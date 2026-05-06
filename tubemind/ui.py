@@ -219,7 +219,12 @@ def _make_kicker_script(board_id: int) -> Any:
         var form = e.detail && e.detail.elt;
         if (!form || form.id !== 'tm-question-form') return;
         var k = kicker();
-        if (k) {{ k.dataset.orig = k.textContent; k.textContent = 'WORKING'; }}
+        if (k) {{
+            k.dataset.orig = k.textContent;
+            var q = (form.querySelector('[name="question"]') || {{}}).value || '';
+            var label = q.trim() ? 'WORKING — ' + q.trim() : 'WORKING';
+            k.textContent = label;
+        }}
         startPolling();
     }}
 
@@ -249,6 +254,25 @@ def render_note_card(note: dict[str, Any]) -> Any:
 
     note_id = int(note.get("id", 0) or 0)
     chunk_rows = list_note_chunks(note_id)
+
+    # Build deduped thumbnail strip from unique source videos (max 3)
+    seen_video_ids: set[str] = set()
+    thumb_els = []
+    for c in chunk_rows:
+        vid = str(c.get("video_id", "") or "").strip()
+        if vid and vid not in seen_video_ids:
+            seen_video_ids.add(vid)
+            thumb_els.append(
+                Img(
+                    src=f"https://img.youtube.com/vi/{vid}/mqdefault.jpg",
+                    alt=str(c.get("video_title", "") or ""),
+                    cls="note-thumb",
+                    loading="lazy",
+                )
+            )
+            if len(thumb_els) >= 3:
+                break
+
     source_chips = [
         Span(
             f"{str(c.get('video_title', 'Source') or 'Source')[:24].rstrip()} · {c.get('start_label', '0:00')}",
@@ -262,7 +286,11 @@ def render_note_card(note: dict[str, Any]) -> Any:
     return A(
         Div(
             P(str(note.get("question", "") or ""), cls="note-question"),
-            Pre(truncate_text(str(note.get("answer", "") or ""), limit=280), cls="note-answer"),
+            Div(
+                Pre(truncate_text(str(note.get("answer", "") or ""), limit=280), cls="note-answer-text"),
+                Div(*thumb_els, cls="note-answer-thumbs") if thumb_els else "",
+                cls="note-answer",
+            ),
             Div(
                 Span(format_timestamp(int(note.get("created_at", 0) or 0)), cls="note-meta"),
                 cls="note-meta-row",

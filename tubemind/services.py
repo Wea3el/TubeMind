@@ -52,7 +52,16 @@ from tubemind.config import (
     YOUTUBE_SEARCH_URL,
     YOUTUBE_VIDEOS_URL,
 )
+from pydantic import BaseModel
+
 from tubemind.models import BoardRuntime, BoardWorkspace, YouTubeVideo, iso8601_duration_to_seconds, now_ms, seconds_to_label, yt_watch_url
+
+
+class RetrievalQuality(BaseModel):
+    """Structured output for evaluating whether retrieved content can answer a question."""
+    is_relevant: bool      # retrieved chunks actually relate to what was asked
+    has_enough_info: bool  # enough detail to give a specific, complete answer
+    reasoning: str         # one-sentence explanation for the decision
 
 
 class TubeMindApp:
@@ -315,6 +324,24 @@ class TubeMindApp:
         if queries or not result.get("chunks") or not str(result.get("answer", "") or "").strip():
             result = await self._query_board(board_id_int, runtime, question_text, mode, allow_empty=False)
 
+        # Structured-output quality gate: if the answer is vague or the retrieved
+        # content doesn't actually cover the question, fetch one more round of videos.
+        set_board_progress(board_id_int, "Checking answer quality...")
+        quality = await self._check_retrieval_quality(
+            question_text,
+            str(result.get("answer", "") or ""),
+            result.get("chunks", []),
+            board,
+        )
+        if not quality.is_relevant or not quality.has_enough_info:
+            set_board_progress(board_id_int, "Not enough info — searching for more videos...")
+            extra_queries = self._fallback_youtube_queries(board, question_text)
+            await self._expand_board_corpus(
+                board_id_int, runtime, extra_queries,
+                min_seconds=min_seconds, min_videos=1, max_videos=max_videos,
+            )
+            result = await self._query_board(board_id_int, runtime, question_text, mode, allow_empty=False)
+
         answer_text = str(result.get("answer") or "").strip()
         if not result.get("chunks") and not answer_text:
             update_board(board_id_int, status="error")
@@ -332,6 +359,69 @@ class TubeMindApp:
         update_board(board_id_int, status="ready", last_question_at=now_ms(), updated_at=now_ms())
         await self._refresh_board_summary(board_id_int)
         return self.build_workspace(board_id_int, active_session_id=resolved_session_id, notice="Added a new note to the board.")
+
+    async def _check_retrieval_quality(
+        self,
+        question: str,
+        answer: str,
+        chunks: list[dict[str, Any]],
+        board: dict[str, Any],
+    ) -> RetrievalQuality:
+        """Structured-output gate: is the retrieved evidence relevant and sufficient?
+
+        Uses OpenAI structured outputs with the RetrievalQuality Pydantic model so
+        the response is guaranteed to parse. If the model is unavailable or the call
+        fails, returns a conservative fallback that treats non-empty chunks as
+        sufficient so the existing answer is not discarded silently.
+        """
+        if not chunks:
+            return RetrievalQuality(
+                is_relevant=False,
+                has_enough_info=False,
+                reasoning="No transcript chunks were retrieved.",
+            )
+
+        excerpt_texts = [str(c.get("content", "") or "")[:300] for c in chunks[:6]]
+        try:
+            response = await self._openai.beta.chat.completions.parse(
+                model=self._llm_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are evaluating whether YouTube transcript excerpts retrieved by a RAG system "
+                            "can fully answer a user's research question. "
+                            "Set is_relevant=false if the excerpts are mostly about unrelated topics. "
+                            "Set has_enough_info=false if the answer would be vague, incomplete, or says "
+                            "'not explicitly listed' or similar hedges indicating missing data. "
+                            "Be strict — partial answers with clear gaps should be marked has_enough_info=false."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps({
+                            "board_topic": str(board.get("topic_anchor", "") or board.get("title", "") or ""),
+                            "question": question,
+                            "draft_answer_preview": answer[:600] if answer else "",
+                            "retrieved_excerpts": excerpt_texts,
+                        }),
+                    },
+                ],
+                response_format=RetrievalQuality,
+            )
+            parsed = response.choices[0].message.parsed
+            if parsed is not None:
+                return parsed
+        except Exception:
+            pass
+
+        # Fallback when structured output fails: trust chunks over empty answer
+        sufficient = bool(chunks and answer and "not explicitly listed" not in answer.lower() and "not listed" not in answer.lower())
+        return RetrievalQuality(
+            is_relevant=bool(chunks),
+            has_enough_info=sufficient,
+            reasoning="Structured output call failed; inferred from answer content.",
+        )
 
     async def _assess_topic_fit(self, board: dict[str, Any], notes: list[dict[str, Any]], question: str) -> dict[str, Any]:
         """Keep follow-up notes near the board topic instead of silently drifting."""
@@ -1029,24 +1119,25 @@ class TubeMindApp:
             if not videos:
                 transcript_failures.append(f'No caption-friendly YouTube results were found for query "{query_text}".')
                 continue
+            loop = asyncio.get_running_loop()
             for video in videos:
                 if video.video_id in queued_ids:
                     continue
                 queued_ids.add(video.video_id)
-                segments, transcript_error = self._fetch_transcript(video)
+                segments, transcript_error = await loop.run_in_executor(None, self._fetch_transcript, video)
                 if not segments:
                     transcript_failures.append(f"{video.title}: {transcript_error or 'unknown transcript error'}")
-                    time.sleep(self._transcript_request_delay())
+                    await asyncio.sleep(self._transcript_request_delay())
                     continue
                 transcript = self._save_transcript_artifact(runtime, video, segments)
                 if not transcript.strip():
                     transcript_failures.append(f"{video.title}: fetched transcript was empty after normalization")
-                    time.sleep(self._transcript_request_delay())
+                    await asyncio.sleep(self._transcript_request_delay())
                     continue
                 documents.append(transcript)
                 indexed_videos.append(video)
                 origin_query_by_video_id[video.video_id] = query_text
-                time.sleep(self._transcript_request_delay())
+                await asyncio.sleep(self._transcript_request_delay())
                 if len(documents) >= max_videos:
                     break
             if len(documents) >= max_videos:
