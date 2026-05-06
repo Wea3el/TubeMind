@@ -123,5 +123,7 @@ class BoardWorkspace:
     boards: list[dict]
     active_board: dict | None
     notes: list[dict] = field(default_factory=list)
+    sessions: list[dict] = field(default_factory=list)
+    active_session_id: int | None = None
     notice: str = ""
     warning: str = ""
