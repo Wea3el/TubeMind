@@ -65,8 +65,10 @@ class TestListSessions(unittest.TestCase):
         self.created_session_ids: list[int] = []
 
     def tearDown(self):
-        for sid in self.created_session_ids:
-            auth.board_sessions_table.delete_where("id = ?", [sid])
+        # Delete ALL sessions for this board — guards against stale sessions
+        # created outside _insert_session (e.g. get_or_create_latest_session
+        # called indirectly by other test paths sharing the same board_id).
+        auth.board_sessions_table.delete_where("board_id = ?", [self.board_id])
         auth.boards_table.delete_where("id = ?", [self.board_id])
 
     def _insert_session(self, created_at: int) -> int:
