@@ -18,6 +18,7 @@ from tubemind.auth import (
     logout_user,
     set_active_board,
     upsert_user_profile,
+    verify_oauth_state,
 )
 from tubemind.config import CSS_FILE, DEMO_AUTH_ENABLED, GOOGLE_AUTH_ENABLED, HTMX_SSE_EXTENSION_URL, MAX_VIDEOS_DEFAULT, MIN_SECONDS_DEFAULT, MIN_VIDEOS_DEFAULT, SESSION_SECRET
 from tubemind.services import get_user_app, shutdown_all_user_apps
@@ -177,7 +178,7 @@ def create_app():
             return RedirectResponse("/login", status_code=303)
         if not code:
             return RedirectResponse("/login?error=no_code", status_code=303)
-        if not state or state != session.get("oauth_state"):
+        if not verify_oauth_state(state, session):
             return RedirectResponse("/login?error=bad_state", status_code=303)
         try:
             token = google_exchange_code(code)

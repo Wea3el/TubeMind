@@ -8,6 +8,8 @@ functions that already belong in the persistence/authentication layer.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import secrets
 from typing import Any, Iterable
@@ -26,6 +28,7 @@ from tubemind.config import (
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     REDIRECT_URI,
+    SESSION_SECRET,
 )
 from tubemind.models import now_ms
 
@@ -236,12 +239,38 @@ def demo_user_profile() -> dict[str, Any]:
     }
 
 
-def begin_oauth_session(session) -> str:
-    """Create and store the CSRF state token for a new login attempt."""
+def _sign_nonce(nonce: str) -> str:
+    return hmac.new(SESSION_SECRET.encode(), nonce.encode(), hashlib.sha256).hexdigest()[:16]
 
-    state = secrets.token_urlsafe(16)
+
+def begin_oauth_session(session) -> str:
+    """Create the OAuth CSRF state as an HMAC-signed nonce.
+
+    The state embeds its own signature so the callback can verify it without
+    reading from the session cookie — eliminating failures caused by browsers
+    dropping the cookie on cross-site OAuth redirects.
+    """
+    nonce = secrets.token_urlsafe(16)
+    state = f"{nonce}.{_sign_nonce(nonce)}"
     session["oauth_state"] = state
     return state
+
+
+def verify_oauth_state(state: str, session) -> bool:
+    """Return True if the OAuth CSRF state is valid.
+
+    Checks the HMAC signature first (stateless — works even when the session
+    cookie is dropped), then falls back to a direct session comparison.
+    """
+    if not state:
+        return False
+    try:
+        nonce, sig = state.rsplit(".", 1)
+        if hmac.compare_digest(sig, _sign_nonce(nonce)):
+            return True
+    except Exception:
+        pass
+    return state == session.get("oauth_state")
 
 
 def logout_user(session) -> RedirectResponse:

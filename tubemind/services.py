@@ -33,6 +33,7 @@ from tubemind.auth import (
     replace_note_chunks,
     save_note_queries,
     set_active_board,
+    set_board_progress,
     update_board,
     upsert_board_videos,
 )
